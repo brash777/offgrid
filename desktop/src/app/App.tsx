@@ -10,8 +10,10 @@ import { es } from '../i18n/es';
 import { AccountPage } from '../pages/AccountPage';
 import { AuthPage } from '../pages/AuthPage';
 import { CatalogPage } from '../pages/CatalogPage';
+import { CheckoutPage } from '../pages/CheckoutPage';
 import { HomePage } from '../pages/HomePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { OrderPage } from '../pages/OrderPage';
 import { ProductPage } from '../pages/ProductPage';
 import { SiteFooter } from './layout/SiteFooter';
 import { SiteHeader } from './layout/SiteHeader';
@@ -59,6 +61,10 @@ function PageFor({ route }: { route: Route }) {
       return <AuthPage mode={route.name} next={route.next} />;
     case 'account':
       return <AccountPage />;
+    case 'checkout':
+      return <CheckoutPage />;
+    case 'order':
+      return <OrderPage id={route.id} placed={route.placed} />;
     case 'notFound':
       return <NotFoundPage />;
   }

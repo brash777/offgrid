@@ -137,6 +137,27 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - **Paginación con orden fijo** (por nombre). Sin orden, la misma página puede devolver productos distintos en cada consulta.
 - **Sin consultas N+1.** El listado del catálogo trae las categorías, las miniaturas, el stock y los colores de toda la página en 4 consultas, no 3 por producto. Los colores van en el listado porque la grilla los necesita para pintar cada prenda y mostrar las muestras de color.
 
+**Compra (fase 6)**
+- **Un carrito por usuario, guardado en la base de datos** (`carts.user_id` es único). Sobrevive a cerrar la app y exige sesión, como se decidió en el alcance.
+- **Ni el subtotal del carrito ni el total del pedido se guardan.** Se calculan sumando precio × cantidad de cada línea cada vez que se piden.
+- **Máximo 10 unidades por línea, y nunca más que el stock al agregar.** El carrito no aparta unidades: el stock se vuelve a revisar al pagar, con la fila bloqueada.
+- **Cada línea del pedido es una foto del momento.** Guarda el nombre, la talla y el color, y el precio de ese instante. Si el precio cambia mañana, el pedido de hoy no cambia.
+- **El pago ocurre en una sola transacción y en este orden:**
+  1. Se valida la tarjeta.
+  2. Se crea el pedido con sus líneas.
+  3. Se decide el pago.
+  4. Si se aprueba, se registran los movimientos `SALE`, el pedido pasa a `PAID`, el pago queda `APPROVED` con su fecha y el carrito se vacía.
+  5. Si se rechaza, el pedido queda `CANCELLED` y el pago `REJECTED`, sin tocar ni el stock ni el carrito.
+
+  Si alguna línea se queda sin stock, no se guarda nada.
+- **Las variantes se bloquean siempre en el mismo orden (por id).** Dos compras al mismo tiempo nunca se esperan la una a la otra en círculo (eso se llama *deadlock*).
+- **Pago simulado con tarjetas de prueba.** Se valida el formato con el algoritmo de Luhn (el dígito de control que tienen las tarjetas reales) y que no esté vencida. `4242 4242 4242 4242` se aprueba, y cualquier número válido que termine en `0002` se rechaza, igual que las tarjetas de prueba de pasarelas como Stripe.
+- **El número de tarjeta nunca se guarda ni aparece en los logs.** `CardDetails.toString()` lo enmascara. La tabla `payments` solo guarda el método, el estado y la fecha, y el monto se calcula desde las líneas del pedido.
+- **La entidad se llama `CustomerOrder` y no `Order`**, porque `ORDER` es palabra reservada en JPQL, el lenguaje de consultas de JPA.
+- **El historial no hace consultas N+1.** La página de pedidos, sus líneas y sus pagos llegan en 3 consultas.
+- **El pedido de otro usuario responde 404.** Se busca por el id del pedido y el `userId` del token en la misma consulta.
+- **La hora sale de un `Clock` inyectable en zona America/Bogota.** Así las pruebas fijan la fecha y revisan el vencimiento de la tarjeta sin depender del día en que se ejecutan.
+
 **Errores**
 - **Un solo formato de error** (`ApiErrorResponse`): `code` estable para el programa y `message` en español para la persona.
 - **Los mensajes viven en `messages.properties`**, no en el código. El código queda en inglés y la app responde en español. Agregar otro idioma sería agregar un archivo.
@@ -146,7 +167,7 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - **Una sola fuente de verdad también en la interfaz.** Precios, stock, tallas y colores siempre salen del backend. La app no guarda copias propias del catálogo.
 - **Las prendas se dibujan, no son fotos.** Cada prenda es un SVG por capas (silueta, textura de tela, luz de estudio, sombras, costuras y herrajes) que se pinta con el `colorHex` real de la variante. Así, al cambiar de color en la página de producto, la prenda cambia de verdad y no hay que tener una foto por color. El tipo de dibujo se elige por la categoría y el nombre del producto (`src/lib/garments.ts`). Cuando existan los renders de Blender, se usan las imágenes del producto.
 - **Rutas con `#`** (`#/catalog`, `#/product/<id>`). Funcionan igual en desarrollo y en la app empaquetada (que abre un archivo local), y los botones de atrás y adelante sirven sin configurar nada.
-- **El carrito vive en memoria por ahora.** Se conecta al backend en la fase 6, que es cuando el total se calcula en el servidor desde las líneas del pedido. El botón de pagar queda deshabilitado y lo dice.
+- **El carrito vive en el servidor.** La app solo muestra lo que responde el backend: líneas, stock disponible y subtotal. Sin sesión, "Agregar al carrito" lleva al inicio de sesión y después regresa al producto.
 - **Errores de red con mensaje claro.** Si el backend está apagado, cada sección muestra "Sin conexión con la tienda" con un botón para reintentar; nada se queda en blanco.
 
 **Sesión en la app de escritorio**
