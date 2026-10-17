@@ -53,6 +53,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/docs/**", "/swagger-ui/**", "/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/v1/admin/**", "/api/v1/categories/**", "/api/v1/products/**")
+                        .hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, ex) ->
