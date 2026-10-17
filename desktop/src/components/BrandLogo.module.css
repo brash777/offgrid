@@ -1,0 +1,94 @@
+.logo {
+  position: relative;
+  display: block;
+  width: 100%;
+  color: inherit;
+}
+
+.layer,
+.globeLayer {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.globeLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.word {
+  font-family: var(--font-logo);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: var(--font-stretch-logo);
+  fill: currentColor;
+}
+
+.maskShow {
+  fill: var(--palette-white);
+}
+
+.maskHide {
+  fill: var(--palette-black);
+  stroke: var(--palette-black);
+  stroke-width: 18px;
+  stroke-linejoin: round;
+}
+
+.globe {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6px;
+  opacity: 0.85;
+}
+
+.globe > * {
+  vector-effect: non-scaling-stroke;
+}
+
+.meridian {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: meridian var(--logo-spin-duration) linear infinite;
+}
+
+@keyframes meridian {
+  0% {
+    transform: scaleX(1);
+    animation-timing-function: ease-in;
+  }
+
+  50% {
+    transform: scaleX(0);
+    animation-timing-function: ease-out;
+  }
+
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+.registered circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6px;
+}
+
+.registered text {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  fill: currentColor;
+}
+
+.star {
+  fill: currentColor;
+}
+
+.tagline {
+  font-family: var(--font-wide);
+  font-size: 17px;
+  fill: currentColor;
+}

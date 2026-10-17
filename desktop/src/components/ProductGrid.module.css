@@ -1,0 +1,30 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-7) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid[data-columns='3'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1180px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.item {
+  animation: item-in 360ms var(--ease-out) both;
+  animation-delay: calc(min(var(--index), 8) * 50ms);
+}
+
+@keyframes item-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(12px * var(--motion-amount)));
+  }
+}

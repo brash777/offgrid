@@ -1,0 +1,118 @@
+.card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.media {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--color-tile);
+}
+
+.layer {
+  position: absolute;
+  inset: 8% 9% 6%;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(calc(1 - 0.02 * var(--motion-amount)));
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform 300ms var(--ease-out);
+}
+
+.layer[data-active] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.card:focus-within .layer[data-active] {
+  transform: scale(calc(1 + 0.04 * var(--motion-amount))) translateY(calc(-1.5% * var(--motion-amount)));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .layer[data-active] {
+    transform: scale(calc(1 + 0.04 * var(--motion-amount))) translateY(calc(-1.5% * var(--motion-amount)));
+  }
+}
+
+.flags {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  display: flex;
+  gap: var(--space-1);
+}
+
+.info {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+}
+
+.name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  line-height: var(--line-height-snug);
+  text-transform: uppercase;
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-raised);
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.card:has(.link:focus-visible) .media {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.price {
+  grid-column: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.swatches {
+  position: relative;
+  z-index: calc(var(--z-raised) + 1);
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  box-shadow: inset 0 0 0 3px var(--color-bg);
+}
+
+.swatch[aria-pressed='true'] {
+  border-color: var(--color-border-strong);
+}

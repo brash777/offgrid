@@ -1,0 +1,18 @@
+.main {
+  min-height: 60vh;
+}
+
+.main:focus {
+  outline: none;
+}
+
+.page {
+  animation: page-in var(--duration-page) var(--ease-out) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(10px * var(--motion-amount)));
+  }
+}

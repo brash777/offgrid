@@ -1,0 +1,162 @@
+.button {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-none);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-caps);
+  text-decoration: none;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(calc(1 - 0.03 * var(--motion-amount)));
+}
+
+.button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--color-hover-wash);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.sm {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.md {
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  font-size: var(--font-size-xs);
+}
+
+.lg {
+  min-height: 52px;
+  padding: 0 var(--space-6);
+  font-size: var(--font-size-sm);
+}
+
+.block {
+  display: flex;
+  width: 100%;
+  padding-block: var(--space-3);
+  white-space: normal;
+  text-align: center;
+  line-height: var(--line-height-snug);
+}
+
+.primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.primary::after {
+  background: var(--color-on-primary);
+}
+
+.secondary {
+  background: transparent;
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.ghost {
+  overflow: visible;
+  min-height: auto;
+  padding: var(--space-1) 0;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.ghost .label {
+  background: linear-gradient(currentColor, currentColor) left bottom / 100% 1px no-repeat;
+  padding-bottom: 2px;
+}
+
+.ghost::after {
+  display: none;
+}
+
+.ai {
+  background: var(--color-ai);
+  color: var(--color-on-ai);
+}
+
+.danger {
+  background: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.button:hover:not(:disabled)::after,
+.button[data-preview-state='hover']::after {
+  opacity: 0.14;
+}
+
+.secondary:hover:not(:disabled)::after,
+.danger:hover:not(:disabled)::after,
+.secondary[data-preview-state='hover']::after {
+  opacity: 1;
+}
+
+.ghost[data-preview-state='hover'] .label {
+  transform: translateX(calc(3px * var(--motion-amount)));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ghost:hover .label {
+    transform: translateX(calc(3px * var(--motion-amount)));
+  }
+}
+
+.button[data-preview-state='focus'] {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.button[aria-busy='true'] {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.spinner {
+  width: 1.1em;
+  height: 1.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin var(--duration-slower) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}

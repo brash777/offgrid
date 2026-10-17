@@ -1,0 +1,208 @@
+:root {
+  --palette-white: #ffffff;
+  --palette-black: #000000;
+  --palette-paper-50: #fbfaf8;
+  --palette-paper-100: #f4f3ef;
+  --palette-paper-200: #ebe9e4;
+  --palette-paper-300: #dcd9d1;
+  --palette-ink-950: #0c0b0a;
+  --palette-ink-900: #151413;
+  --palette-ink-800: #1f1e1c;
+  --palette-ink-700: #2d2c29;
+  --palette-ink-600: #56544f;
+  --palette-ink-500: #6e6b65;
+  --palette-ink-400: #8a8780;
+  --palette-ink-300: #acaaa3;
+  --palette-red-400: #ff5c4a;
+  --palette-red-500: #d4231b;
+  --palette-red-600: #b11a13;
+  --palette-red-900: #3d0806;
+  --palette-cream-200: #ede4d3;
+  --palette-navy-800: #16213a;
+  --palette-navy-600: #2a3b63;
+  --palette-violet-300: #ab96ff;
+  --palette-violet-600: #5a37e6;
+  --palette-green-400: #4ade80;
+  --palette-green-700: #17723a;
+  --palette-amber-400: #ffb020;
+  --palette-amber-700: #9a5200;
+  --palette-chrome-100: #ffffff;
+  --palette-chrome-200: #dfe3ea;
+  --palette-chrome-400: #9aa3b2;
+  --palette-chrome-700: #3b414d;
+  --palette-chrome-900: #171a20;
+  --palette-stitch: #c98a3c;
+  --palette-neon-lime: #c6ff3d;
+  --palette-neon-pink: #ff4fd8;
+  --palette-teal-300: #5eead4;
+  --palette-rarity-common: #8f969e;
+  --palette-rarity-rare: #2f8cff;
+  --palette-rarity-epic: #9b4dff;
+  --palette-rarity-legendary: #f59e0b;
+
+  --color-bg: var(--palette-paper-100);
+  --color-surface: var(--palette-paper-50);
+  --color-tile: var(--palette-paper-200);
+  --color-border: rgb(12 11 10 / 0.1);
+  --color-border-strong: var(--palette-ink-950);
+  --color-border-control: var(--palette-ink-400);
+  --color-text: var(--palette-ink-950);
+  --color-text-muted: var(--palette-ink-600);
+  --color-primary: var(--palette-ink-950);
+  --color-on-primary: var(--palette-paper-50);
+  --color-accent: var(--palette-red-500);
+  --color-on-accent: var(--palette-white);
+  --color-ai: var(--palette-violet-600);
+  --color-on-ai: var(--palette-white);
+  --color-hero: var(--palette-red-500);
+  --color-on-hero: var(--palette-white);
+  --color-success: var(--palette-green-700);
+  --color-warning: var(--palette-amber-700);
+  --color-danger: var(--palette-red-600);
+  --color-focus: var(--palette-ink-950);
+  --color-scrim: rgb(12 11 10 / 0.5);
+  --color-hover-wash: rgb(12 11 10 / 0.04);
+  --color-shimmer: rgb(255 255 255 / 0.55);
+  --color-art-shadow: rgb(12 11 10 / 0.28);
+  --color-art-edge: rgb(0 0 0 / 0.22);
+  --color-art-light: rgb(255 255 255 / 1);
+  --color-art-dark: rgb(0 0 0 / 1);
+
+  --rarity-common: var(--palette-rarity-common);
+  --rarity-rare: var(--palette-rarity-rare);
+  --rarity-epic: var(--palette-rarity-epic);
+  --rarity-legendary: var(--palette-rarity-legendary);
+
+  --font-logo: 'Archivo', 'Arial Black', sans-serif;
+  --font-wide: 'Michroma', 'Arial', sans-serif;
+  --font-display: 'Anton', Impact, 'Arial Narrow', sans-serif;
+  --font-sans: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2.25rem;
+  --font-size-3xl: 3.25rem;
+  --font-size-4xl: 4.75rem;
+  --font-size-display: clamp(3.5rem, 7.2vw, 7.5rem);
+  --font-size-mega: clamp(7rem, 21vw, 22rem);
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-display: 0.9;
+  --line-height-snug: 1.2;
+  --line-height-body: 1.55;
+
+  --letter-spacing-caps: 0.08em;
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-display: 0.01em;
+  --letter-spacing-wide: 0.42em;
+
+  --font-stretch-logo: 125%;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --space-10: 8rem;
+
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-pill: 999px;
+
+  --border-width: 1px;
+  --border-width-strong: 2px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 3px;
+
+  --shadow-drawer: -24px 0 60px -30px rgb(12 11 10 / 0.45);
+  --shadow-pop: 0 18px 50px -24px rgb(12 11 10 / 0.45);
+
+  --duration-instant: 90ms;
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+  --duration-slow: 420ms;
+  --duration-slower: 900ms;
+  --duration-cinematic: 1400ms;
+  --duration-marquee: 36s;
+  --duration-hero-cycle: 6.5s;
+  --duration-page: 280ms;
+
+  --motion-amount: 1;
+  --motion-play: running;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --layout-max-width: 1600px;
+  --layout-gutter: clamp(1.25rem, 2.6vw, 2.75rem);
+  --announcement-height: 32px;
+  --header-height: 60px;
+  --drawer-width: min(440px, 92vw);
+
+  --z-base: 0;
+  --z-raised: 10;
+  --z-header: 100;
+  --z-overlay: 500;
+  --z-drawer: 600;
+  --z-toast: 700;
+  --z-intro: 900;
+}
+
+[data-surface='ink'] {
+  --color-bg: var(--palette-ink-950);
+  --color-surface: var(--palette-ink-900);
+  --color-tile: var(--palette-ink-800);
+  --color-border: rgb(255 255 255 / 0.12);
+  --color-border-strong: var(--palette-paper-50);
+  --color-border-control: var(--palette-ink-500);
+  --color-text: var(--palette-paper-50);
+  --color-text-muted: var(--palette-ink-300);
+  --color-primary: var(--palette-paper-50);
+  --color-on-primary: var(--palette-ink-950);
+  --color-accent: var(--palette-red-400);
+  --color-on-accent: var(--palette-ink-950);
+  --color-ai: var(--palette-violet-300);
+  --color-on-ai: var(--palette-ink-950);
+  --color-success: var(--palette-green-400);
+  --color-warning: var(--palette-amber-400);
+  --color-danger: var(--palette-red-400);
+  --color-focus: var(--palette-paper-50);
+  --color-hover-wash: rgb(255 255 255 / 0.06);
+  --color-shimmer: rgb(255 255 255 / 0.08);
+  --color-art-shadow: rgb(0 0 0 / 0.6);
+}
+
+[data-surface='hero'] {
+  --color-bg: var(--color-hero);
+  --color-text: var(--color-on-hero);
+  --color-text-muted: var(--color-on-hero);
+  --color-primary: var(--palette-ink-950);
+  --color-on-primary: var(--palette-paper-50);
+  --color-border-strong: var(--color-on-hero);
+  --color-focus: var(--palette-white);
+  --color-art-shadow: rgb(0 0 0 / 0.38);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-amount: 0;
+    --motion-play: paused;
+  }
+}
+
+[data-motion='reduced'] {
+  --motion-amount: 0;
+  --motion-play: paused;
+}
