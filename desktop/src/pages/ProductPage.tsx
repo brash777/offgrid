@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties, type PointerEvent } from 'react'
 import { AnimatePresence, motion } from 'motion/react';
 import { fetchProduct, fetchProducts, type ProductDetail } from '../api/catalog';
 import { useNotify } from '../app/notifications';
-import { hrefFor } from '../app/router';
+import { currentHref, hrefFor, navigate } from '../app/router';
 import { RarityTag } from '../components/Badge';
 import { Button, ButtonLink } from '../components/Button';
 import { ErrorState } from '../components/ErrorState';
@@ -83,6 +83,7 @@ function Stage({
 function ProductView({ product }: { product: ProductDetail }) {
   const cart = useCart();
   const notify = useNotify();
+  const [adding, setAdding] = useState(false);
   const colors = useMemo(() => colorsOf(product.variants), [product.variants]);
   const [colorHex, setColorHex] = useState(colors[0]?.hex ?? '');
   const sizes = useMemo(
@@ -105,30 +106,22 @@ function ProductView({ product }: { product: ProductDetail }) {
     setColorHex(colors[(index + 1) % colors.length].hex);
   };
 
-  const addToCart = () => {
+  const addToCart = async () => {
     if (!variant || !color) {
       return;
     }
-    const result = cart.add({
-      variantId: variant.id,
-      productId: product.id,
-      name: product.name,
-      size: variant.size,
-      colorName: color.name,
-      colorHex: color.hex,
-      garment: garmentFor(product.name, product.categorySlug),
-      unitPrice: variant.price,
-      maxQuantity: variant.availableStock,
-    });
-    if (result === 'added') {
+    setAdding(true);
+    const result = await cart.add(variant.id);
+    setAdding(false);
+    if (result === 'login') {
+      navigate({ name: 'login', next: currentHref() });
+    } else if (result === 'added') {
       notify({
         tone: 'success',
         title: es.cart.added,
         detail: `${product.name} · ${es.cart.lineDetail(variant.size, color.name)}`,
         action: { label: es.cart.viewCart, onClick: cart.open },
       });
-    } else {
-      notify({ tone: 'error', title: es.cart.maxReached, detail: product.name });
     }
   };
 
@@ -209,7 +202,7 @@ function ProductView({ product }: { product: ProductDetail }) {
               ? es.product.stockLeft(variant.availableStock)
               : es.product.inStock}
         </p>
-        <Button size="lg" block disabled={soldOut} onClick={addToCart}>
+        <Button size="lg" block disabled={soldOut} loading={adding} onClick={addToCart}>
           {soldOut ? es.common.soldOut : es.product.addWithPrice(price)}
         </Button>
         <p className={styles.payment}>{es.product.paymentNote}</p>
