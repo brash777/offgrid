@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { hrefFor } from '../app/router';
-import { Button, ButtonLink } from '../components/Button';
+import { currentHref, hrefFor } from '../app/router';
+import { ButtonLink } from '../components/Button';
 import { GarmentArt } from '../components/garment/GarmentArt';
 import { Icon } from '../components/Icon';
 import { useFocusTrap } from '../hooks/useFocusTrap';
@@ -41,7 +41,7 @@ function LineItem({ line }: { line: CartLine }) {
             <button
               type="button"
               aria-label={es.cart.decrease}
-              disabled={line.quantity <= 1}
+              disabled={cart.busy || line.quantity <= 1}
               onClick={() => cart.setQuantity(line.variantId, line.quantity - 1)}
             >
               <Icon name="minus" />
@@ -50,18 +50,23 @@ function LineItem({ line }: { line: CartLine }) {
             <button
               type="button"
               aria-label={es.cart.increase}
-              disabled={line.quantity >= line.maxQuantity}
+              disabled={cart.busy || line.quantity >= line.maxQuantity}
               onClick={() => cart.setQuantity(line.variantId, line.quantity + 1)}
             >
               <Icon name="plus" />
             </button>
           </div>
-          <button type="button" className={styles.remove} onClick={() => cart.remove(line.variantId)}>
+          <button
+            type="button"
+            className={styles.remove}
+            disabled={cart.busy}
+            onClick={() => cart.remove(line.variantId)}
+          >
             {es.cart.remove}
           </button>
         </div>
       </div>
-      <p className={styles.linePrice}>{formatCop(line.unitPrice * line.quantity)}</p>
+      <p className={styles.linePrice}>{formatCop(line.lineTotal)}</p>
     </li>
   );
 }
@@ -107,7 +112,15 @@ export function CartDrawer() {
               </button>
             </header>
 
-            {cart.lines.length === 0 ? (
+            {!cart.signedIn ? (
+              <div className={styles.empty}>
+                <p className={styles.emptyTitle}>{es.cart.signInTitle}</p>
+                <p>{es.cart.signInBody}</p>
+                <ButtonLink href={hrefFor({ name: 'login', next: currentHref() })} onClick={() => close()}>
+                  {es.cart.signInCta}
+                </ButtonLink>
+              </div>
+            ) : cart.lines.length === 0 ? (
               <div className={styles.empty}>
                 <p>{es.cart.empty}</p>
                 <ButtonLink href={hrefFor({ name: 'catalog' })} onClick={() => close()}>
@@ -126,11 +139,17 @@ export function CartDrawer() {
                     <span>{es.cart.subtotal}</span>
                     <span>{formatCop(cart.subtotal)}</span>
                   </p>
-                  <Button size="lg" block disabled aria-describedby="checkout-note">
+                  <ButtonLink
+                    size="lg"
+                    block
+                    href={hrefFor({ name: 'checkout' })}
+                    onClick={() => close()}
+                    aria-describedby="checkout-note"
+                  >
                     {es.cart.checkout}
-                  </Button>
+                  </ButtonLink>
                   <p id="checkout-note" className={styles.note}>
-                    {es.cart.checkoutSoon}
+                    {es.cart.paymentNote}
                   </p>
                 </footer>
               </>

@@ -7,6 +7,8 @@ export type Route =
   | { name: 'login'; next?: string }
   | { name: 'register'; next?: string }
   | { name: 'account' }
+  | { name: 'checkout' }
+  | { name: 'order'; id: string; placed?: boolean }
   | { name: 'notFound' };
 
 const AUTH_PATHS = ['#/login', '#/register'];
@@ -46,6 +48,12 @@ export function parseHash(hash: string): Route {
   if (segments[0] === 'account' && segments.length === 1) {
     return { name: 'account' };
   }
+  if (segments[0] === 'checkout' && segments.length === 1) {
+    return { name: 'checkout' };
+  }
+  if (segments[0] === 'orders' && segments.length === 2) {
+    return { name: 'order', id: segments[1], placed: query.get('placed') === '1' };
+  }
   return { name: 'notFound' };
 }
 
@@ -72,6 +80,10 @@ export function hrefFor(route: Route): string {
       return withNext('#/register', route.next);
     case 'account':
       return '#/account';
+    case 'checkout':
+      return '#/checkout';
+    case 'order':
+      return `#/orders/${encodeURIComponent(route.id)}${route.placed ? '?placed=1' : ''}`;
     case 'notFound':
       return '#/not-found';
   }
