@@ -1,0 +1,41 @@
+.card {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.block {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-tile);
+}
+
+.block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--color-shimmer), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.4s var(--ease-in-out) infinite;
+  animation-play-state: var(--motion-play);
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.media {
+  aspect-ratio: 4 / 5;
+}
+
+.line {
+  height: 12px;
+  width: 70%;
+  margin-top: var(--space-2);
+}
+
+.lineShort {
+  height: 12px;
+  width: 30%;
+}

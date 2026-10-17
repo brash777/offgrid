@@ -1,0 +1,145 @@
+.art {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--color-art-edge);
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+.seam {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.seamDark {
+  stroke: var(--color-art-dark);
+  stroke-opacity: 0.32;
+  stroke-width: 1.4;
+}
+
+.seamLight {
+  stroke: var(--color-art-light);
+  stroke-opacity: 0.16;
+  stroke-width: 1;
+}
+
+.stitch {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+  stroke-linecap: round;
+}
+
+.stitch-light {
+  stroke: var(--color-art-light);
+  stroke-opacity: 0.32;
+}
+
+.stitch-dark {
+  stroke: var(--color-art-dark);
+  stroke-opacity: 0.32;
+}
+
+.stitch-copper {
+  stroke: var(--palette-stitch);
+  stroke-opacity: 0.9;
+}
+
+.rib path {
+  fill: none;
+  stroke-linecap: butt;
+}
+
+.zipperTape {
+  fill: none;
+  stroke: var(--color-art-dark);
+  stroke-opacity: 0.35;
+  stroke-width: 8;
+}
+
+.zipperTeeth {
+  fill: none;
+  stroke-width: 5;
+  stroke-dasharray: 1.6 1.4;
+}
+
+.cord,
+.cordShadow {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.cord {
+  stroke: var(--palette-paper-50);
+}
+
+.cordShadow {
+  stroke: var(--color-art-dark);
+  stroke-opacity: 0.3;
+}
+
+.hole {
+  fill: var(--palette-ink-950);
+}
+
+.glint {
+  fill: var(--color-art-light);
+  opacity: 0.85;
+}
+
+.shadow {
+  fill: var(--color-art-shadow);
+}
+
+.printText {
+  font-family: var(--font-logo);
+  font-size: 30px;
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: var(--font-stretch-logo);
+}
+
+.lace,
+.laceDark {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.lace {
+  stroke: var(--palette-paper-50);
+}
+
+.laceDark {
+  stroke: var(--palette-ink-700);
+}
+
+.reflection {
+  fill: var(--color-art-light);
+  opacity: 0.2;
+}
+
+.reflectionFaint {
+  fill: var(--color-art-light);
+  opacity: 0.12;
+}
+
+.handle {
+  fill: none;
+  stroke: var(--palette-ink-900);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.barTack {
+  stroke: var(--color-art-light);
+  stroke-opacity: 0.3;
+  stroke-width: 1.5;
+}

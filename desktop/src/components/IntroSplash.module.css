@@ -1,0 +1,107 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-intro);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--palette-ink-950);
+  color: var(--palette-paper-200);
+}
+
+.glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 70vmin;
+  height: 50vmin;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, var(--palette-ink-700) 0%, transparent 100%);
+  opacity: 0.7;
+  transform: translate(-50%, -56%);
+  animation: breathe 6s var(--ease-in-out) infinite alternate;
+  animation-play-state: var(--motion-play);
+}
+
+@keyframes breathe {
+  from {
+    opacity: 0.45;
+    transform: translate(-50%, -56%) scale(0.94);
+  }
+
+  to {
+    opacity: 0.8;
+    transform: translate(-50%, -56%) scale(1.06);
+  }
+}
+
+.frame {
+  position: absolute;
+  inset: clamp(16px, 3.4vmin, 40px);
+  border: var(--border-width) solid var(--palette-ink-600);
+  border-radius: clamp(20px, 4vmin, 48px);
+}
+
+.edition {
+  position: absolute;
+  top: clamp(20px, 4vmin, 44px);
+  left: clamp(24px, 4.6vmin, 52px);
+  font-family: var(--font-wide);
+  font-size: clamp(1rem, 2.2vmin, 1.5rem);
+  color: var(--palette-paper-200);
+}
+
+.center {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-7);
+}
+
+.logo {
+  width: min(70vw, 900px);
+}
+
+.enter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--palette-paper-50);
+  font-family: var(--font-wide);
+  font-size: var(--font-size-lg);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.enterLine {
+  width: 48px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0.6);
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+.enter:focus-visible .enterLine {
+  transform: scaleX(1.4);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .enter:hover .enterLine {
+    transform: scaleX(1.4);
+  }
+}
+
+.hint {
+  position: absolute;
+  bottom: calc(clamp(16px, 3.4vmin, 40px) + var(--space-5));
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
