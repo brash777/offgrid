@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
+import { AuthProvider } from '../auth/AuthContext';
 import { CartDrawer } from '../cart/CartDrawer';
 import { CartProvider, useCart } from '../cart/CartContext';
 import { IntroSplash } from '../components/IntroSplash';
 import { Marquee } from '../components/Marquee';
 import { useScrolled } from '../hooks/useScrolled';
 import { es } from '../i18n/es';
+import { AccountPage } from '../pages/AccountPage';
+import { AuthPage } from '../pages/AuthPage';
 import { CatalogPage } from '../pages/CatalogPage';
 import { HomePage } from '../pages/HomePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
@@ -51,6 +54,11 @@ function PageFor({ route }: { route: Route }) {
       return <CatalogPage category={route.category} search={route.search} />;
     case 'product':
       return <ProductPage id={route.id} />;
+    case 'login':
+    case 'register':
+      return <AuthPage mode={route.name} next={route.next} />;
+    case 'account':
+      return <AccountPage />;
     case 'notFound':
       return <NotFoundPage />;
   }
@@ -120,9 +128,11 @@ export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <NotificationsProvider>
-        <CartProvider>
-          <Shell />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Shell />
+          </CartProvider>
+        </AuthProvider>
       </NotificationsProvider>
     </MotionConfig>
   );

@@ -4,7 +4,23 @@ export type Route =
   | { name: 'home' }
   | { name: 'catalog'; category?: string; search?: string }
   | { name: 'product'; id: string }
+  | { name: 'login'; next?: string }
+  | { name: 'register'; next?: string }
+  | { name: 'account' }
   | { name: 'notFound' };
+
+const AUTH_PATHS = ['#/login', '#/register'];
+
+function safeNext(value: string | null): string | undefined {
+  if (!value || !value.startsWith('#/') || AUTH_PATHS.some((path) => value.startsWith(path))) {
+    return undefined;
+  }
+  return value;
+}
+
+function withNext(path: string, next?: string): string {
+  return next ? `${path}?next=${encodeURIComponent(next)}` : path;
+}
 
 export function parseHash(hash: string): Route {
   const [rawPath, rawQuery = ''] = hash.replace(/^#/, '').split('?');
@@ -23,6 +39,12 @@ export function parseHash(hash: string): Route {
   }
   if (segments[0] === 'product' && segments.length === 2) {
     return { name: 'product', id: segments[1] };
+  }
+  if ((segments[0] === 'login' || segments[0] === 'register') && segments.length === 1) {
+    return { name: segments[0], next: safeNext(query.get('next')) };
+  }
+  if (segments[0] === 'account' && segments.length === 1) {
+    return { name: 'account' };
   }
   return { name: 'notFound' };
 }
@@ -44,13 +66,26 @@ export function hrefFor(route: Route): string {
     }
     case 'product':
       return `#/product/${encodeURIComponent(route.id)}`;
+    case 'login':
+      return withNext('#/login', route.next);
+    case 'register':
+      return withNext('#/register', route.next);
+    case 'account':
+      return '#/account';
     case 'notFound':
       return '#/not-found';
   }
 }
 
+export function currentHref(): string {
+  return window.location.hash || hrefFor({ name: 'home' });
+}
+
 export function navigate(route: Route, options: { replace?: boolean } = {}) {
-  const href = hrefFor(route);
+  navigateTo(hrefFor(route), options);
+}
+
+export function navigateTo(href: string, options: { replace?: boolean } = {}) {
   if (options.replace) {
     window.history.replaceState(null, '', href);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
