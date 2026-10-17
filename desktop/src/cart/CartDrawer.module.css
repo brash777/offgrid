@@ -55,6 +55,11 @@
   color: var(--color-text-muted);
 }
 
+.emptyTitle {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
 .lines {
   flex: 1;
   margin: 0;

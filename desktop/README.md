@@ -61,7 +61,9 @@ desktop/
 | `#/catalog` | Catálogo con filtro por categoría (`?category=`), búsqueda (`?search=`) y "cargar más" |
 | `#/product/<id>` | Detalle: color, talla, stock, lupa y "agregar al carrito" |
 | `#/login` y `#/register` | Iniciar sesión y crear cuenta. Después vuelven a la pantalla de donde venías (`?next=`). |
-| `#/account` | Mi cuenta: medidas para el avatar y la talla, y cerrar sesión |
+| `#/account` | Mi cuenta: medidas para el avatar y la talla, historial de pedidos y cerrar sesión |
+| `#/checkout` | Finalizar compra: resumen del pedido y pago simulado con tarjeta de prueba |
+| `#/orders/<id>` | Detalle del pedido (y "Compra confirmada" justo después de pagar) |
 | Panel lateral | Carrito (tecla `C`) |
 
 ### Cuentas de prueba (perfil `dev`)
@@ -72,6 +74,15 @@ desktop/
 | Administrador | `admin@flowstore.app` | `Admin123!` |
 
 Solo existen en la base de desarrollo: las crea la migración `V900` del backend.
+
+### Tarjetas de prueba (pago simulado)
+
+| Número | Resultado |
+|---|---|
+| `4242 4242 4242 4242` | Pago aprobado |
+| `4000 0000 0000 0002` | Pago rechazado |
+
+Cualquier fecha futura (por ejemplo `12/29`) y cualquier código de 3 dígitos. Ninguna tarjeta se cobra ni se guarda.
 
 ## Seguridad de la ventana
 

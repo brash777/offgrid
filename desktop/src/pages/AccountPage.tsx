@@ -1,18 +1,22 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { fetchProfile, updateProfile, type BodyBuild, type Profile, type SessionUser } from '../api/auth';
 import { ApiError } from '../api/http';
+import { fetchOrders } from '../api/orders';
 import { useNotify } from '../app/notifications';
 import { hrefFor, navigate } from '../app/router';
 import { firstName, useAuth } from '../auth/AuthContext';
 import { Badge } from '../components/Badge';
-import { Button } from '../components/Button';
+import { Button, ButtonLink } from '../components/Button';
 import { ErrorState } from '../components/ErrorState';
 import { OptionPicker } from '../components/OptionPicker';
 import { SkeletonBlock } from '../components/Skeleton';
 import { TextField } from '../components/TextField';
 import { useAsync } from '../hooks/useAsync';
 import { es } from '../i18n/es';
+import { formatDateTime } from '../lib/dates';
+import { formatCop } from '../lib/money';
 import styles from './AccountPage.module.css';
+import { ORDER_TONE } from './OrderPage';
 
 const BUILDS: BodyBuild[] = ['SLIM', 'REGULAR', 'ATHLETIC', 'PLUS'];
 const USUAL_SIZES = ['XS', 'S', 'M', 'L', 'XL'];
@@ -86,7 +90,62 @@ function AccountView({ user }: { user: SessionUser }) {
           </Button>
         </section>
       </div>
+
+      <OrdersSection userId={user.id} />
     </div>
+  );
+}
+
+function OrdersSection({ userId }: { userId: string }) {
+  const { state, reload } = useAsync((signal) => fetchOrders(signal), [userId]);
+
+  return (
+    <section className={styles.orders} aria-labelledby="orders-title">
+      <h2 id="orders-title" className={styles.ordersTitle}>
+        {es.orders.title}
+      </h2>
+      {state.status === 'loading' && <SkeletonBlock className={styles.formSkeleton} />}
+      {state.status === 'error' && <ErrorState error={state.error} onRetry={reload} />}
+      {state.status === 'success' && state.data.content.length === 0 && (
+        <div className={styles.noOrders}>
+          <p>{es.orders.empty}</p>
+          <ButtonLink href={hrefFor({ name: 'catalog' })}>{es.cart.emptyCta}</ButtonLink>
+        </div>
+      )}
+      {state.status === 'success' && state.data.content.length > 0 && (
+        <table className={styles.orderTable}>
+          <thead>
+            <tr>
+              <th scope="col">{es.orders.column}</th>
+              <th scope="col">{es.orders.date}</th>
+              <th scope="col">{es.orders.items}</th>
+              <th scope="col">{es.orders.total}</th>
+              <th scope="col">
+                <span className="visually-hidden">{es.orders.view}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.data.content.map((order) => (
+              <tr key={order.id}>
+                <td>
+                  <span className={styles.orderCode}>{es.orders.code(order.id)}</span>
+                  <Badge tone={ORDER_TONE[order.status]}>{es.orders.status[order.status]}</Badge>
+                </td>
+                <td>{formatDateTime(order.createdAt)}</td>
+                <td>{order.items.map((line) => line.productName).join(', ')}</td>
+                <td className={styles.orderTotal}>{formatCop(Number(order.total))}</td>
+                <td>
+                  <a className={styles.orderLink} href={hrefFor({ name: 'order', id: order.id })}>
+                    {es.orders.view}
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
 
