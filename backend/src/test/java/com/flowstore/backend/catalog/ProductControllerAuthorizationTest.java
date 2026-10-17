@@ -72,6 +72,28 @@ class ProductControllerAuthorizationTest {
     }
 
     @Test
+    void aCustomerWithAnInvalidBodyIsForbiddenBeforeValidation() throws Exception {
+        mockMvc.perform(post("/api/v1/products")
+                        .header("Authorization", "Bearer " + tokenFor(UserRole.CUSTOMER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.fields").doesNotExist());
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void aCustomerCannotWriteCategories() throws Exception {
+        mockMvc.perform(post("/api/v1/categories")
+                        .header("Authorization", "Bearer " + tokenFor(UserRole.CUSTOMER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+    }
+
+    @Test
     void anAdminCanCreateProducts() throws Exception {
         when(productService.create(any())).thenReturn(new CatalogDtos.ProductDetailResponse(
                 UUID.randomUUID(), "Test shirt", "", new BigDecimal("50000.00"), EquipSlot.TORSO,

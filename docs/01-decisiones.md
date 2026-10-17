@@ -130,6 +130,7 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - **El registro público siempre crea un CUSTOMER.** No existe endpoint para crear un ADMIN. Si el registro aceptara un rol, cualquiera podría crearse una cuenta de administrador.
 - **Restablecer la contraseña cierra todas las sesiones del usuario.** El token de recuperación solo aparece en el log en perfil `dev` (nivel DEBUG), nunca en producción.
 - **Recurso de otro usuario → 404, no 403.** El `userId` sale siempre del token. Responder 403 confirmaría que el recurso existe.
+- **Las rutas de administración se cierran dos veces.** Primero por URL en `SecurityConfig` (escribir en `/api/v1/products/**`, `/api/v1/categories/**` o cualquier cosa bajo `/api/v1/admin/**` exige ADMIN) y después con `@PreAuthorize` en cada método. La regla por URL corre antes de leer el cuerpo de la petición. Sin ella, un cliente que mandaba datos inválidos recibía 400 con el detalle de los campos del formulario de admin en vez de 403, porque Spring valida el cuerpo antes de revisar la anotación.
 
 **Datos**
 - **Stock sin carreras.** Para vender, primero se bloquea la fila de la variante (`SELECT ... FOR UPDATE`) y después se suma el stock. Dos compras simultáneas de la misma prenda quedan en fila, así que el stock nunca queda negativo.
