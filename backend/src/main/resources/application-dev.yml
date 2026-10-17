@@ -1,0 +1,14 @@
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
+    clean-disabled: false
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.flowstore.backend: DEBUG
