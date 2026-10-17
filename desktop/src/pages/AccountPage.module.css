@@ -1,0 +1,100 @@
+.page {
+  max-width: var(--layout-max-width);
+  margin-inline: auto;
+  padding: var(--space-7) var(--layout-gutter) var(--space-9);
+}
+
+.head {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
+}
+
+.crumb {
+  font-size: var(--font-size-xs);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.crumb a {
+  color: inherit;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-display);
+  text-transform: uppercase;
+}
+
+.identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.cardTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+}
+
+.cardBody {
+  max-width: 56ch;
+  color: var(--color-text-muted);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-2);
+}
+
+.heightField {
+  max-width: 220px;
+}
+
+.formError {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.save {
+  justify-self: start;
+}
+
+.titleSkeleton {
+  height: 96px;
+  max-width: 520px;
+}
+
+.formSkeleton {
+  height: 240px;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

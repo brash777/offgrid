@@ -148,6 +148,14 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - **Rutas con `#`** (`#/catalog`, `#/product/<id>`). Funcionan igual en desarrollo y en la app empaquetada (que abre un archivo local), y los botones de atrás y adelante sirven sin configurar nada.
 - **El carrito vive en memoria por ahora.** Se conecta al backend en la fase 6, que es cuando el total se calcula en el servidor desde las líneas del pedido. El botón de pagar queda deshabilitado y lo dice.
 - **Errores de red con mensaje claro.** Si el backend está apagado, cada sección muestra "Sin conexión con la tienda" con un botón para reintentar; nada se queda en blanco.
+
+**Sesión en la app de escritorio**
+- **El access token vive solo en memoria**, en una variable de JavaScript. Nunca se escribe en disco ni en `localStorage`, así que no queda en ningún archivo que alguien pueda copiar.
+- **El refresh token se guarda cifrado con `safeStorage` de Electron**, que usa el llavero de macOS. Queda en el archivo `session.bin`, dentro de la carpeta de datos de la app, y solo se puede descifrar con ese usuario en ese equipo. Así la sesión dura hasta 30 días sin pedir la contraseña otra vez. En el modo navegador (`npm run dev:web`) no hay llavero y el refresh queda solo en memoria.
+- **El puente con Electron es mínimo.** El preload solo expone tres funciones (`load`, `save` y `clear`), y el proceso principal revisa que la llamada venga de la propia app antes de tocar el archivo. La interfaz sigue sin acceso a Node.
+- **Renovación automática y una sola a la vez.** Si una petición responde 401 con `TOKEN_EXPIRED`, la app renueva la sesión con el refresh y repite la petición una vez. Si varias peticiones vencen al mismo tiempo, comparten la misma renovación. Como cada refresh revoca el anterior (rotación), dos renovaciones en paralelo cerrarían la sesión.
+- **Cerrar sesión borra primero lo local** y después revoca el refresh en el servidor. Si no hay internet, la sesión igual desaparece del equipo.
+- **Los mensajes de validación los da el backend.** Salen de `messages.properties`, así hay una sola fuente de textos de error. La app los muestra debajo de cada campo y mueve el foco al primero con error.
 - **Movimiento solo con `transform` y `opacity`.** Ninguna animación cambia tamaños ni posiciones del layout, y todas se apagan con "reducir movimiento" del sistema. El carrusel del inicio se pausa con el mouse y tiene botón de pausa.
 
 ## 8. Pendiente para seguir

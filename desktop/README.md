@@ -60,7 +60,18 @@ desktop/
 | `#/` | Inicio: héroe con 3 escenas, nuevos lanzamientos, categorías y bloque de edición limitada |
 | `#/catalog` | Catálogo con filtro por categoría (`?category=`), búsqueda (`?search=`) y "cargar más" |
 | `#/product/<id>` | Detalle: color, talla, stock, lupa y "agregar al carrito" |
+| `#/login` y `#/register` | Iniciar sesión y crear cuenta. Después vuelven a la pantalla de donde venías (`?next=`). |
+| `#/account` | Mi cuenta: medidas para el avatar y la talla, y cerrar sesión |
 | Panel lateral | Carrito (tecla `C`) |
+
+### Cuentas de prueba (perfil `dev`)
+
+| Rol | Correo | Contraseña |
+|---|---|---|
+| Cliente | `cliente@flowstore.app` | `Cliente123!` |
+| Administrador | `admin@flowstore.app` | `Admin123!` |
+
+Solo existen en la base de desarrollo: las crea la migración `V900` del backend.
 
 ## Seguridad de la ventana
 
