@@ -1,7 +1,8 @@
+import { useAuth } from '../../auth/AuthContext';
 import { useCart } from '../../cart/CartContext';
 import { BrandLogo } from '../../components/BrandLogo';
 import { es } from '../../i18n/es';
-import { hrefFor, type Route } from '../router';
+import { currentHref, hrefFor, type Route } from '../router';
 import styles from './SiteHeader.module.css';
 
 interface SiteHeaderProps {
@@ -12,6 +13,8 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ route, overlay, onSearch }: SiteHeaderProps) {
   const cart = useCart();
+  const auth = useAuth();
+  const onAuthPage = route.name === 'login' || route.name === 'register';
 
   return (
     <header className={styles.header} data-overlay={overlay || undefined} data-surface={overlay ? 'hero' : undefined}>
@@ -40,6 +43,24 @@ export function SiteHeader({ route, overlay, onSearch }: SiteHeaderProps) {
         <button type="button" className={styles.link} onClick={onSearch} aria-keyshortcuts="/">
           {es.nav.search}
         </button>
+        {auth.status === 'authenticated' && (
+          <a
+            href={hrefFor({ name: 'account' })}
+            className={styles.link}
+            aria-current={route.name === 'account' ? 'page' : undefined}
+          >
+            {es.nav.account}
+          </a>
+        )}
+        {auth.status === 'anonymous' && (
+          <a
+            href={hrefFor({ name: 'login', next: onAuthPage ? undefined : currentHref() })}
+            className={styles.link}
+            aria-current={onAuthPage ? 'page' : undefined}
+          >
+            {es.nav.signIn}
+          </a>
+        )}
         <button
           type="button"
           className={styles.link}

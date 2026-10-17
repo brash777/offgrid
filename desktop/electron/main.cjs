@@ -1,8 +1,13 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('node:path');
+const { registerSessionStore } = require('./session-store.cjs');
 
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 const START_PAGE = process.env.FLOWSTORE_START_PAGE ?? 'index.html';
+
+function isAppUrl(url) {
+  return DEV_SERVER_URL ? url.startsWith(DEV_SERVER_URL) : url.startsWith('file://');
+}
 
 function createWindow() {
   const window = new BrowserWindow({
@@ -31,8 +36,7 @@ function createWindow() {
   });
 
   window.webContents.on('will-navigate', (event, url) => {
-    const allowed = DEV_SERVER_URL ? url.startsWith(DEV_SERVER_URL) : url.startsWith('file://');
-    if (!allowed) {
+    if (!isAppUrl(url)) {
       event.preventDefault();
     }
   });
@@ -45,6 +49,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  registerSessionStore(isAppUrl);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
