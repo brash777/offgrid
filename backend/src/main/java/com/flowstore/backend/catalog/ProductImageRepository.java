@@ -1,5 +1,6 @@
 package com.flowstore.backend.catalog;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -8,8 +9,10 @@ import java.util.UUID;
 
 public interface ProductImageRepository extends JpaRepository<ProductImage, UUID> {
 
+    @EntityGraph(attributePaths = "variant")
     List<ProductImage> findByProductIdOrderByPositionAsc(UUID productId);
 
+    @EntityGraph(attributePaths = {"product", "variant"})
     List<ProductImage> findByProductIdInOrderByPositionAsc(Collection<UUID> productIds);
 
     long countByProductId(UUID productId);

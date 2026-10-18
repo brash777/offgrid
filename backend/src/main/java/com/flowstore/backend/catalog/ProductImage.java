@@ -54,6 +54,10 @@ public class ProductImage {
         return product;
     }
 
+    public String photoColor() {
+        return variant == null ? null : variant.getColorName();
+    }
+
     public String getPath() {
         return path;
     }

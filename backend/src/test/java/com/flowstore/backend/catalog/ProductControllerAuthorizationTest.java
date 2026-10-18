@@ -97,7 +97,7 @@ class ProductControllerAuthorizationTest {
     void anAdminCanCreateProducts() throws Exception {
         when(productService.create(any())).thenReturn(new CatalogDtos.ProductDetailResponse(
                 UUID.randomUUID(), "Test shirt", "", new BigDecimal("50000.00"), EquipSlot.TORSO,
-                "camisetas", "Camisetas", true, List.of(), List.of()));
+                "camisetas", "Camisetas", true, List.of(), null, List.of()));
 
         mockMvc.perform(post("/api/v1/products")
                         .header("Authorization", "Bearer " + tokenFor(UserRole.ADMIN))
