@@ -2,7 +2,7 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'reac
 import { es } from '../i18n/es';
 import styles from './Button.module.css';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ai' | 'danger';
+export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'ai' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 export type PreviewState = 'hover' | 'focus';
 

@@ -3,9 +3,8 @@ import { AnimatePresence, MotionConfig } from 'motion/react';
 import { AuthProvider } from '../auth/AuthContext';
 import { CartDrawer } from '../cart/CartDrawer';
 import { CartProvider, useCart } from '../cart/CartContext';
-import { IntroSplash } from '../components/IntroSplash';
-import { Marquee } from '../components/Marquee';
-import { useScrolled } from '../hooks/useScrolled';
+import { Preloader } from '../components/Preloader';
+import { QuickViewProvider } from '../components/store/QuickView';
 import { es } from '../i18n/es';
 import { AccountPage } from '../pages/AccountPage';
 import { AuthPage } from '../pages/AuthPage';
@@ -23,7 +22,6 @@ import { requestSearchFocus } from './searchFocus';
 import styles from './App.module.css';
 
 const INTRO_SEEN_KEY = 'flowstore.intro-seen';
-const HERO_SCROLL_THRESHOLD = 0.75;
 
 function readIntroSeen(): boolean {
   try {
@@ -48,17 +46,21 @@ function isTyping(target: EventTarget | null): boolean {
   );
 }
 
-function PageFor({ route }: { route: Route }) {
+function PageFor({ route, introDone }: { route: Route; introDone: boolean }) {
   switch (route.name) {
     case 'home':
-      return <HomePage />;
+      return <HomePage ready={introDone} />;
     case 'catalog':
       return <CatalogPage category={route.category} search={route.search} />;
     case 'product':
       return <ProductPage id={route.id} />;
     case 'login':
     case 'register':
-      return <AuthPage mode={route.name} next={route.next} />;
+      return route.name === 'register' ? (
+        <AuthPage mode="register" next={route.next} email={route.email} />
+      ) : (
+        <AuthPage mode="login" next={route.next} />
+      );
     case 'account':
       return <AccountPage />;
     case 'checkout':
@@ -75,8 +77,6 @@ function Shell() {
   const cart = useCart();
   const mainRef = useRef<HTMLElement>(null);
   const [introDone, setIntroDone] = useState(readIntroSeen);
-  const pastHero = useScrolled(window.innerHeight * HERO_SCROLL_THRESHOLD);
-  const overlay = route.name === 'home' && !pastHero;
   const pageKey = routeKey(route);
 
   useLayoutEffect(() => {
@@ -116,16 +116,15 @@ function Shell() {
       <button type="button" className="skip-link" onClick={() => mainRef.current?.focus()}>
         {es.nav.skipToContent}
       </button>
-      <Marquee items={es.announcement} />
-      <SiteHeader route={route} overlay={overlay} onSearch={openSearch} />
+      <SiteHeader route={route} onSearch={openSearch} />
       <main ref={mainRef} className={styles.main} tabIndex={-1}>
         <div key={pageKey} className={styles.page}>
-          <PageFor route={route} />
+          <PageFor route={route} introDone={introDone} />
         </div>
       </main>
       <SiteFooter />
       <CartDrawer />
-      <AnimatePresence>{!introDone && <IntroSplash key="intro" onEnter={finishIntro} />}</AnimatePresence>
+      <AnimatePresence>{!introDone && <Preloader key="preloader" onDone={finishIntro} />}</AnimatePresence>
     </>
   );
 }
@@ -136,7 +135,9 @@ export function App() {
       <NotificationsProvider>
         <AuthProvider>
           <CartProvider>
-            <Shell />
+            <QuickViewProvider>
+              <Shell />
+            </QuickViewProvider>
           </CartProvider>
         </AuthProvider>
       </NotificationsProvider>

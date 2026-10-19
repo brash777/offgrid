@@ -5,7 +5,7 @@ export type Route =
   | { name: 'catalog'; category?: string; search?: string }
   | { name: 'product'; id: string }
   | { name: 'login'; next?: string }
-  | { name: 'register'; next?: string }
+  | { name: 'register'; next?: string; email?: string }
   | { name: 'account' }
   | { name: 'checkout' }
   | { name: 'order'; id: string; placed?: boolean }
@@ -42,8 +42,11 @@ export function parseHash(hash: string): Route {
   if (segments[0] === 'product' && segments.length === 2) {
     return { name: 'product', id: segments[1] };
   }
-  if ((segments[0] === 'login' || segments[0] === 'register') && segments.length === 1) {
-    return { name: segments[0], next: safeNext(query.get('next')) };
+  if (segments[0] === 'login' && segments.length === 1) {
+    return { name: 'login', next: safeNext(query.get('next')) };
+  }
+  if (segments[0] === 'register' && segments.length === 1) {
+    return { name: 'register', next: safeNext(query.get('next')), email: query.get('email') ?? undefined };
   }
   if (segments[0] === 'account' && segments.length === 1) {
     return { name: 'account' };
@@ -76,8 +79,17 @@ export function hrefFor(route: Route): string {
       return `#/product/${encodeURIComponent(route.id)}`;
     case 'login':
       return withNext('#/login', route.next);
-    case 'register':
-      return withNext('#/register', route.next);
+    case 'register': {
+      const query = new URLSearchParams();
+      if (route.next) {
+        query.set('next', route.next);
+      }
+      if (route.email) {
+        query.set('email', route.email);
+      }
+      const suffix = query.toString();
+      return suffix ? `#/register?${suffix}` : '#/register';
+    }
     case 'account':
       return '#/account';
     case 'checkout':

@@ -15,6 +15,7 @@ export interface ProductSummary {
   categorySlug: string;
   categoryName: string;
   thumbnailUrl: string | null;
+  photoColor: string | null;
   totalStock: number;
   colors: ColorOption[];
 }
@@ -39,6 +40,7 @@ export interface ProductDetail {
   categoryName: string;
   active: boolean;
   imageUrls: string[];
+  photoColor: string | null;
   variants: ProductVariant[];
 }
 

@@ -5,8 +5,8 @@
   height: 1.25em;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: square;
-  stroke-linejoin: miter;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   vertical-align: middle;
 }

@@ -10,6 +10,7 @@ export const SAMPLE_PRODUCTS: ProductSummary[] = [
     categorySlug: 'chaquetas',
     categoryName: 'Chaquetas',
     thumbnailUrl: null,
+    photoColor: null,
     totalStock: 60,
     colors: [
       { name: 'Negro', hex: '#1a1a1a' },
@@ -25,6 +26,7 @@ export const SAMPLE_PRODUCTS: ProductSummary[] = [
     categorySlug: 'camisetas',
     categoryName: 'Camisetas',
     thumbnailUrl: null,
+    photoColor: null,
     totalStock: 4,
     colors: [
       { name: 'Negro', hex: '#1a1a1a' },
@@ -39,6 +41,7 @@ export const SAMPLE_PRODUCTS: ProductSummary[] = [
     categorySlug: 'calzado',
     categoryName: 'Calzado',
     thumbnailUrl: null,
+    photoColor: null,
     totalStock: 45,
     colors: [{ name: 'Blanco', hex: '#f5f5f5' }],
   },
@@ -50,6 +53,7 @@ export const SAMPLE_PRODUCTS: ProductSummary[] = [
     categorySlug: 'gorras',
     categoryName: 'Gorras',
     thumbnailUrl: null,
+    photoColor: null,
     totalStock: 0,
     colors: [{ name: 'Verde Neón', hex: '#39ff14' }],
   },
