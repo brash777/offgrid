@@ -1,5 +1,14 @@
 # Sistema de diseño
 
+> **Versión 1.1, 19 de octubre de 2026 (estilo "drip").** El estudiante pidió vender streetwear de marca (Jordan, TN, Tech Fleece, Supreme, Sp5der, Corteiz, Chrome Hearts, Ralph Lauren, perfumes) con la estética de Central Cee. Cambios sobre la 1.0:
+> - **Héroe oscuro.** Fondo casi negro, la primera línea del titular en cromo (degradado plateado recortado al texto) y la segunda en negro sobre la franja lima, que ahora cubre las letras completas. Al fondo hay un foco de luz que sigue al mouse.
+> - **Modelos.** Tres fotos de Central Cee recortadas que se turnan, con el crédito "Inspiración de estilo: Central Cee". El lookbook muestra sus fotos de calle.
+> - **"Uno por uno".** Sección oscura que pasa los 10 tenis de a uno (cada 3.2 s, con pausa al pasar el mouse): el tenis entra rotado desde un lado y detrás aparece su modelo gigante en contorno (AJ4, AJ11, AJ3, TN).
+> - **Lima más eléctrico** (`#d4ff3a`), que combina mejor con el negro y el cromo.
+> - **Catálogo de 36 prendas.** 10 tenis, 6 chaquetas, 6 buzos, 2 camisetas, 4 gorros y gorras, 3 perfumes y accesorios, cada uno con su foto recortada.
+>
+> Las fotos de esta versión son de terceros: productos de StockX y Nike, prendas recortadas de las capturas del estudiante y fotos de Central Cee. Sirven para la demo académica, pero **no se suben a git**. Viven en `backend/uploads/product-images/drip-*.webp` y `desktop/src/assets/local/`, y si faltan, la app usa las fotos libres de la versión 1.0.
+
 > Versión 1.0, 18 de octubre de 2026. El estudiante pidió quitar todo lo que se veía "de videojuego" (rareza, "drop", intro tipo tarjeta, prendas dibujadas con grano) y replicar la estética limpia de una tienda de moda de referencia: fondo blanco, titulares gigantes, acento verde lima, fotos reales y mucho movimiento. La 0.3 (papel, rojo y prendas dibujadas) queda en el historial de git.
 
 ## 1. Qué tomamos de la referencia

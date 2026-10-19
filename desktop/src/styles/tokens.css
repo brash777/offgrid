@@ -40,8 +40,8 @@
   --palette-rarity-epic: #9b4dff;
   --palette-rarity-legendary: #f59e0b;
   --palette-lime-300: #e9f98f;
-  --palette-lime-400: #dbf24a;
-  --palette-lime-500: #c6e22b;
+  --palette-lime-400: #d4ff3a;
+  --palette-lime-500: #bdf01c;
   --palette-lime-800: #4f5c00;
   --palette-gray-50: #f7f7f5;
   --palette-gray-100: #f0f0ed;
@@ -86,6 +86,11 @@
   --color-on-photo: var(--palette-white);
   --color-photo-scrim: rgb(12 11 10 / 0.55);
   --color-photo-scrim-soft: rgb(12 11 10 / 0.25);
+  --color-glass-dark: rgb(28 27 26 / 0.62);
+  --color-spotlight: rgb(255 255 255 / 0.09);
+  --color-chrome-high: #ffffff;
+  --color-chrome-mid: #d3d5d9;
+  --color-chrome-low: #8a8e96;
   --color-border-dark: rgb(255 255 255 / 0.2);
   --color-on-primary-muted: rgb(251 250 248 / 0.72);
 
