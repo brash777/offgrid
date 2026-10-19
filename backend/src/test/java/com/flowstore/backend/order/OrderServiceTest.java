@@ -5,6 +5,7 @@ import com.flowstore.backend.cart.CartRepository;
 import com.flowstore.backend.catalog.Category;
 import com.flowstore.backend.catalog.EquipSlot;
 import com.flowstore.backend.catalog.Product;
+import com.flowstore.backend.catalog.ProductPhotos;
 import com.flowstore.backend.catalog.ProductVariant;
 import com.flowstore.backend.payment.CardDetails;
 import com.flowstore.backend.payment.Payment;
@@ -67,6 +68,9 @@ class OrderServiceTest {
     @Mock
     private PaymentRepository paymentRepository;
 
+    @Mock
+    private ProductPhotos productPhotos;
+
     private OrderService orderService;
     private UUID userId;
     private User user;
@@ -78,7 +82,7 @@ class OrderServiceTest {
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-10-17T15:00:00Z"), ZoneId.of("America/Bogota"));
         orderService = new OrderService(orderRepository, orderItemRepository, cartRepository, userRepository,
-                stockService, paymentRepository, new PaymentSimulator(clock), clock);
+                stockService, paymentRepository, new PaymentSimulator(clock), productPhotos, clock);
 
         userId = UUID.randomUUID();
         user = new User("ana@flowstore.app", "hash", "Ana Prueba", UserRole.CUSTOMER);

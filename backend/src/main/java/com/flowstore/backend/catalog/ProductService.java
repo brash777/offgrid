@@ -27,19 +27,22 @@ public class ProductService {
     private final CategoryService categoryService;
     private final StockService stockService;
     private final FileStorageService fileStorageService;
+    private final ProductPhotos productPhotos;
 
     public ProductService(ProductRepository productRepository,
                           ProductVariantRepository variantRepository,
                           ProductImageRepository imageRepository,
                           CategoryService categoryService,
                           StockService stockService,
-                          FileStorageService fileStorageService) {
+                          FileStorageService fileStorageService,
+                          ProductPhotos productPhotos) {
         this.productRepository = productRepository;
         this.variantRepository = variantRepository;
         this.imageRepository = imageRepository;
         this.categoryService = categoryService;
         this.stockService = stockService;
         this.fileStorageService = fileStorageService;
+        this.productPhotos = productPhotos;
     }
 
     @Transactional(readOnly = true)
@@ -57,7 +60,7 @@ public class ProductService {
         }
         Page<Product> page = productRepository.findAll(filters, pageable);
         List<UUID> productIds = page.getContent().stream().map(Product::getId).toList();
-        Map<UUID, ProductImage> thumbnails = thumbnailsOf(productIds);
+        Map<UUID, ProductPhotos.Photo> photos = productPhotos.firstPhotos(productIds);
         Map<UUID, Long> stockByProduct = stockService.availabilityByProduct(productIds);
         Map<UUID, List<CatalogDtos.ColorResponse>> colorsByProduct = colorsOf(productIds);
 
@@ -68,8 +71,8 @@ public class ProductService {
                 product.getSlot(),
                 product.getCategory().getSlug(),
                 product.getCategory().getName(),
-                urlOf(thumbnails.get(product.getId())),
-                photoColorOf(thumbnails.get(product.getId())),
+                photos.getOrDefault(product.getId(), ProductPhotos.Photo.NONE).url(),
+                photos.getOrDefault(product.getId(), ProductPhotos.Photo.NONE).color(),
                 stockByProduct.getOrDefault(product.getId(), 0L),
                 colorsByProduct.getOrDefault(product.getId(), List.of()))));
     }
@@ -151,8 +154,10 @@ public class ProductService {
         List<ProductVariant> variants = variantRepository.findByProductIdOrderByColorNameAscSizeAsc(product.getId());
         Map<UUID, Long> stockByVariant = stockService.availabilityByVariant(
                 variants.stream().map(ProductVariant::getId).toList());
-        List<ProductImage> images = imageRepository.findByProductIdOrderByPositionAsc(product.getId());
-        List<String> imageUrls = images.stream().map(this::urlOf).toList();
+        List<ProductPhotos.Photo> images = imageRepository.findByProductIdOrderByPositionAsc(product.getId()).stream()
+                .map(productPhotos::toPhoto)
+                .toList();
+        List<String> imageUrls = images.stream().map(ProductPhotos.Photo::url).toList();
 
         return new CatalogDtos.ProductDetailResponse(
                 product.getId(),
@@ -164,29 +169,10 @@ public class ProductService {
                 product.getCategory().getName(),
                 product.isActive(),
                 imageUrls,
-                images.isEmpty() ? null : photoColorOf(images.getFirst()),
+                images.isEmpty() ? null : images.getFirst().color(),
                 variants.stream()
                         .map(variant -> toVariantResponse(variant, stockByVariant.getOrDefault(variant.getId(), 0L)))
                         .toList());
-    }
-
-    private Map<UUID, ProductImage> thumbnailsOf(List<UUID> productIds) {
-        if (productIds.isEmpty()) {
-            return Map.of();
-        }
-        return imageRepository.findByProductIdInOrderByPositionAsc(productIds).stream()
-                .collect(Collectors.toMap(
-                        image -> image.getProduct().getId(),
-                        image -> image,
-                        (first, ignored) -> first));
-    }
-
-    private String urlOf(ProductImage image) {
-        return image == null ? null : fileStorageService.publicUrl(image.getPath());
-    }
-
-    private static String photoColorOf(ProductImage image) {
-        return image == null ? null : image.photoColor();
     }
 
     private Map<UUID, List<CatalogDtos.ColorResponse>> colorsOf(List<UUID> productIds) {

@@ -58,6 +58,10 @@ public class ProductImage {
         return variant == null ? null : variant.getColorName();
     }
 
+    public String photoColorHex() {
+        return variant == null ? null : variant.getColorHex();
+    }
+
     public String getPath() {
         return path;
     }

@@ -1,6 +1,7 @@
 package com.flowstore.backend.cart;
 
 import com.flowstore.backend.catalog.Product;
+import com.flowstore.backend.catalog.ProductPhotos;
 import com.flowstore.backend.catalog.ProductVariant;
 import com.flowstore.backend.catalog.ProductVariantRepository;
 import com.flowstore.backend.shared.ApiException;
@@ -23,15 +24,18 @@ public class CartService {
     private final ProductVariantRepository variantRepository;
     private final UserRepository userRepository;
     private final StockService stockService;
+    private final ProductPhotos productPhotos;
 
     public CartService(CartRepository cartRepository,
                        ProductVariantRepository variantRepository,
                        UserRepository userRepository,
-                       StockService stockService) {
+                       StockService stockService,
+                       ProductPhotos productPhotos) {
         this.cartRepository = cartRepository;
         this.variantRepository = variantRepository;
         this.userRepository = userRepository;
         this.stockService = stockService;
+        this.productPhotos = productPhotos;
     }
 
     @Transactional(readOnly = true)
@@ -96,8 +100,12 @@ public class CartService {
         List<CartItem> items = cart.getItems();
         Map<UUID, Long> stock = stockService.availabilityByVariant(
                 items.stream().map(item -> item.getProductVariant().getId()).toList());
+        Map<UUID, ProductPhotos.Photo> photos = productPhotos.firstPhotos(
+                items.stream().map(item -> item.getProductVariant().getProduct().getId()).distinct().toList());
         List<CartDtos.CartItemResponse> lines = items.stream()
-                .map(item -> toLine(item, stock.getOrDefault(item.getProductVariant().getId(), 0L)))
+                .map(item -> toLine(item,
+                        stock.getOrDefault(item.getProductVariant().getId(), 0L),
+                        photos.getOrDefault(item.getProductVariant().getProduct().getId(), ProductPhotos.Photo.NONE)))
                 .toList();
         BigDecimal subtotal = lines.stream()
                 .map(CartDtos.CartItemResponse::lineTotal)
@@ -106,7 +114,7 @@ public class CartService {
         return new CartDtos.CartResponse(lines, itemCount, subtotal, MAX_UNITS_PER_LINE);
     }
 
-    private static CartDtos.CartItemResponse toLine(CartItem item, long available) {
+    private static CartDtos.CartItemResponse toLine(CartItem item, long available, ProductPhotos.Photo photo) {
         ProductVariant variant = item.getProductVariant();
         Product product = variant.getProduct();
         BigDecimal unitPrice = variant.effectivePrice();
@@ -118,6 +126,9 @@ public class CartService {
                 variant.getSize(),
                 variant.getColorName(),
                 variant.getColorHex(),
+                photo.url(),
+                photo.color(),
+                photo.colorHex(),
                 unitPrice,
                 item.getQuantity(),
                 available,

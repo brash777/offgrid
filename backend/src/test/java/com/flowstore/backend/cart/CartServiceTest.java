@@ -3,6 +3,7 @@ package com.flowstore.backend.cart;
 import com.flowstore.backend.catalog.Category;
 import com.flowstore.backend.catalog.EquipSlot;
 import com.flowstore.backend.catalog.Product;
+import com.flowstore.backend.catalog.ProductPhotos;
 import com.flowstore.backend.catalog.ProductVariant;
 import com.flowstore.backend.catalog.ProductVariantRepository;
 import com.flowstore.backend.shared.ApiException;
@@ -42,6 +43,9 @@ class CartServiceTest {
     @Mock
     private StockService stockService;
 
+    @Mock
+    private ProductPhotos productPhotos;
+
     private CartService cartService;
     private UUID userId;
     private Cart cart;
@@ -49,7 +53,7 @@ class CartServiceTest {
 
     @BeforeEach
     void setUp() {
-        cartService = new CartService(cartRepository, variantRepository, userRepository, stockService);
+        cartService = new CartService(cartRepository, variantRepository, userRepository, stockService, productPhotos);
         userId = UUID.randomUUID();
         User user = new User("ana@flowstore.app", "hash", "Ana Prueba", UserRole.CUSTOMER);
         cart = new Cart(user);
