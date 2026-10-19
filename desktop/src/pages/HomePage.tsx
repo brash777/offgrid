@@ -2,7 +2,14 @@ import { useMemo } from 'react';
 import { fetchProducts } from '../api/catalog';
 import { ErrorState } from '../components/ErrorState';
 import { Hero } from '../components/home/Hero';
-import { BrandMarquee, Collections, JoinBanner, NewArrivals, WhyUs } from '../components/home/HomeSections';
+import {
+  BrandMarquee,
+  Collections,
+  JoinBanner,
+  NewArrivals,
+  SneakerSpotlight,
+  WhyUs,
+} from '../components/home/HomeSections';
 import { useAsync } from '../hooks/useAsync';
 import styles from './HomePage.module.css';
 
@@ -26,6 +33,7 @@ export function HomePage({ ready }: HomePageProps) {
         </div>
       ) : (
         <>
+          <SneakerSpotlight products={products} />
           <Collections products={products} />
           <NewArrivals products={products} loading={state.status === 'loading'} />
         </>

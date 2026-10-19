@@ -23,8 +23,21 @@ import { ButtonLink } from '../Button';
 import { Icon } from '../Icon';
 import styles from './Hero.module.css';
 
-const MODELS = [modelYellow, modelCamel, modelPink];
-const LOOKS = [lookYellow, lookCap, lookMilan, lookCamel];
+function localAssets(files: Record<string, string>): string[] {
+  return Object.entries(files)
+    .sort(([first], [second]) => first.localeCompare(second))
+    .map(([, url]) => url);
+}
+
+const LOCAL_MODELS = localAssets(
+  import.meta.glob<string>('../../assets/local/model-*.webp', { eager: true, import: 'default' }),
+);
+const LOCAL_LOOKS = localAssets(
+  import.meta.glob<string>('../../assets/local/look-*.webp', { eager: true, import: 'default' }),
+);
+const MODELS = LOCAL_MODELS.length > 0 ? LOCAL_MODELS : [modelYellow, modelCamel, modelPink];
+const LOOKS = LOCAL_LOOKS.length > 0 ? LOCAL_LOOKS : [lookYellow, lookCap, lookMilan, lookCamel];
+const SHOW_STYLE_CREDIT = LOCAL_MODELS.length > 0;
 const MODEL_MS = 5200;
 const LOOK_MS = 2600;
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -75,6 +88,8 @@ export function Hero({ ready, products }: HeroProps) {
   const modelY = useTransform(springY, (value) => value * 10);
   const floatX = useTransform(springX, (value) => value * 34);
   const floatY = useTransform(springY, (value) => value * 18);
+  const spotX = useTransform(springX, (value) => value * 320);
+  const spotY = useTransform(springY, (value) => value * 160);
   const show = ready ? 'shown' : 'hidden';
   const avatars = products.filter((product) => product.thumbnailUrl).slice(0, 3);
 
@@ -109,12 +124,26 @@ export function Hero({ ready, products }: HeroProps) {
   };
 
   return (
-    <section className={styles.hero} aria-labelledby="hero-title" onPointerMove={trackPointer} onPointerLeave={resetPointer}>
+    <section
+      className={styles.hero}
+      data-surface="ink"
+      aria-labelledby="hero-title"
+      onPointerMove={trackPointer}
+      onPointerLeave={resetPointer}
+    >
       <div className={styles.glow} aria-hidden="true" />
+      <motion.div className={styles.spot} style={{ x: spotX, y: spotY }} aria-hidden="true" />
+      {SHOW_STYLE_CREDIT && <p className={styles.credit}>{es.store.styleCredit}</p>}
 
       <motion.h1 id="hero-title" className={styles.title} style={{ x: titleX, y: titleY }}>
         <span className={styles.line}>
-          <motion.span className={styles.lineInner} variants={lineVariants} custom={0.1} initial="hidden" animate={show}>
+          <motion.span
+            className={`${styles.lineInner} ${styles.chrome}`}
+            variants={lineVariants}
+            custom={0.1}
+            initial="hidden"
+            animate={show}
+          >
             {es.store.heroTitle}
           </motion.span>
         </span>
@@ -158,7 +187,7 @@ export function Hero({ ready, products }: HeroProps) {
                 <img src={assetUrl(product.thumbnailUrl) ?? ''} alt="" />
               </span>
             ))}
-            <span className={styles.avatarCount}>{es.store.heroCardCount(products.length)}</span>
+            {products.length > 0 && <span className={styles.avatarCount}>{es.store.heroCardCount(products.length)}</span>}
           </div>
           <p className={styles.cardText}>{es.store.heroCardBody}</p>
         </motion.div>
@@ -196,7 +225,7 @@ export function Hero({ ready, products }: HeroProps) {
       </motion.div>
 
       <motion.div className={styles.ctas} variants={riseVariants} initial="hidden" animate={show}>
-        <ButtonLink href={hrefFor({ name: 'catalog' })} size="lg">
+        <ButtonLink href={hrefFor({ name: 'catalog' })} size="lg" variant="accent">
           {es.store.shopNow}
         </ButtonLink>
         <ButtonLink href={hrefFor({ name: 'catalog' })} size="lg" variant="secondary">
