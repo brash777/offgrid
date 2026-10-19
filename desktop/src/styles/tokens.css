@@ -39,19 +39,30 @@
   --palette-rarity-rare: #2f8cff;
   --palette-rarity-epic: #9b4dff;
   --palette-rarity-legendary: #f59e0b;
+  --palette-lime-300: #e9f98f;
+  --palette-lime-400: #dbf24a;
+  --palette-lime-500: #c6e22b;
+  --palette-lime-800: #4f5c00;
+  --palette-gray-50: #f7f7f5;
+  --palette-gray-100: #f0f0ed;
+  --palette-gray-200: #e4e4e0;
 
-  --color-bg: var(--palette-paper-100);
-  --color-surface: var(--palette-paper-50);
-  --color-tile: var(--palette-paper-200);
-  --color-border: rgb(12 11 10 / 0.1);
+  --color-bg: var(--palette-white);
+  --color-surface: var(--palette-white);
+  --color-tile: var(--palette-gray-100);
+  --color-tile-strong: var(--palette-gray-200);
+  --color-border: rgb(12 11 10 / 0.09);
   --color-border-strong: var(--palette-ink-950);
   --color-border-control: var(--palette-ink-400);
   --color-text: var(--palette-ink-950);
   --color-text-muted: var(--palette-ink-600);
   --color-primary: var(--palette-ink-950);
   --color-on-primary: var(--palette-paper-50);
-  --color-accent: var(--palette-red-500);
-  --color-on-accent: var(--palette-white);
+  --color-accent: var(--palette-lime-400);
+  --color-accent-strong: var(--palette-lime-500);
+  --color-on-accent: var(--palette-ink-950);
+  --color-accent-text: var(--palette-lime-800);
+  --color-sale: var(--palette-red-500);
   --color-ai: var(--palette-violet-600);
   --color-on-ai: var(--palette-white);
   --color-hero: var(--palette-red-500);
@@ -67,6 +78,16 @@
   --color-art-edge: rgb(0 0 0 / 0.22);
   --color-art-light: rgb(255 255 255 / 1);
   --color-art-dark: rgb(0 0 0 / 1);
+  --color-art-shadow-soft: rgb(12 11 10 / 0.16);
+  --color-shine: rgb(255 255 255 / 0.85);
+  --color-shine-tint: rgb(219 242 74 / 0.55);
+  --color-glass: rgb(255 255 255 / 0.82);
+  --color-glow: rgb(219 242 74 / 0.32);
+  --color-on-photo: var(--palette-white);
+  --color-photo-scrim: rgb(12 11 10 / 0.55);
+  --color-photo-scrim-soft: rgb(12 11 10 / 0.25);
+  --color-border-dark: rgb(255 255 255 / 0.2);
+  --color-on-primary-muted: rgb(251 250 248 / 0.72);
 
   --rarity-common: var(--palette-rarity-common);
   --rarity-rare: var(--palette-rarity-rare);
@@ -117,7 +138,9 @@
   --space-10: 8rem;
 
   --radius-none: 0;
-  --radius-sm: 2px;
+  --radius-sm: 6px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
   --radius-pill: 999px;
 
   --border-width: 1px;
@@ -127,6 +150,8 @@
 
   --shadow-drawer: -24px 0 60px -30px rgb(12 11 10 / 0.45);
   --shadow-pop: 0 18px 50px -24px rgb(12 11 10 / 0.45);
+  --shadow-card: 0 24px 60px -32px rgb(12 11 10 / 0.38);
+  --shadow-float: 0 18px 40px -18px rgb(12 11 10 / 0.3);
 
   --duration-instant: 90ms;
   --duration-fast: 160ms;
@@ -148,7 +173,7 @@
   --layout-max-width: 1600px;
   --layout-gutter: clamp(1.25rem, 2.6vw, 2.75rem);
   --announcement-height: 32px;
-  --header-height: 60px;
+  --header-height: 68px;
   --drawer-width: min(440px, 92vw);
 
   --z-base: 0;
@@ -171,8 +196,10 @@
   --color-text-muted: var(--palette-ink-300);
   --color-primary: var(--palette-paper-50);
   --color-on-primary: var(--palette-ink-950);
-  --color-accent: var(--palette-red-400);
+  --color-accent: var(--palette-lime-400);
   --color-on-accent: var(--palette-ink-950);
+  --color-accent-text: var(--palette-lime-400);
+  --color-tile: var(--palette-ink-800);
   --color-ai: var(--palette-violet-300);
   --color-on-ai: var(--palette-ink-950);
   --color-success: var(--palette-green-400);

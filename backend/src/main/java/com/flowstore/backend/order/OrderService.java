@@ -3,6 +3,7 @@ package com.flowstore.backend.order;
 import com.flowstore.backend.cart.Cart;
 import com.flowstore.backend.cart.CartItem;
 import com.flowstore.backend.cart.CartRepository;
+import com.flowstore.backend.catalog.ProductPhotos;
 import com.flowstore.backend.catalog.ProductVariant;
 import com.flowstore.backend.payment.Payment;
 import com.flowstore.backend.payment.PaymentRepository;
@@ -39,6 +40,7 @@ public class OrderService {
     private final StockService stockService;
     private final PaymentRepository paymentRepository;
     private final PaymentSimulator paymentSimulator;
+    private final ProductPhotos productPhotos;
     private final Clock clock;
 
     public OrderService(OrderRepository orderRepository,
@@ -48,6 +50,7 @@ public class OrderService {
                         StockService stockService,
                         PaymentRepository paymentRepository,
                         PaymentSimulator paymentSimulator,
+                        ProductPhotos productPhotos,
                         Clock clock) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -56,6 +59,7 @@ public class OrderService {
         this.stockService = stockService;
         this.paymentRepository = paymentRepository;
         this.paymentSimulator = paymentSimulator;
+        this.productPhotos = productPhotos;
         this.clock = clock;
     }
 
@@ -84,7 +88,7 @@ public class OrderService {
             payment = Payment.rejected(order.getId());
         }
         paymentRepository.save(payment);
-        return toResponse(order, order.getItems(), payment);
+        return toResponse(order, order.getItems(), payment, photosOf(order.getItems()));
     }
 
     @Transactional(readOnly = true)
@@ -93,10 +97,13 @@ public class OrderService {
         List<UUID> orderIds = orders.map(CustomerOrder::getId).getContent();
         Map<UUID, List<OrderItem>> itemsByOrder = itemsOf(orderIds);
         Map<UUID, Payment> paymentsByOrder = paymentsOf(orderIds);
+        Map<UUID, ProductPhotos.Photo> photos = photosOf(
+                itemsByOrder.values().stream().flatMap(List::stream).toList());
         return PageResponse.from(orders.map(order -> toResponse(
                 order,
                 itemsByOrder.getOrDefault(order.getId(), List.of()),
-                paymentsByOrder.get(order.getId()))));
+                paymentsByOrder.get(order.getId()),
+                photos)));
     }
 
     @Transactional(readOnly = true)
@@ -104,10 +111,8 @@ public class OrderService {
         CustomerOrder order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> ApiException.notFound("ORDER_NOT_FOUND"));
         List<UUID> orderIds = List.of(order.getId());
-        return toResponse(
-                order,
-                itemsOf(orderIds).getOrDefault(order.getId(), List.of()),
-                paymentsOf(orderIds).get(order.getId()));
+        List<OrderItem> items = itemsOf(orderIds).getOrDefault(order.getId(), List.of());
+        return toResponse(order, items, paymentsOf(orderIds).get(order.getId()), photosOf(items));
     }
 
     private static ProductVariant requireActive(CartItem item) {
@@ -134,8 +139,17 @@ public class OrderService {
                 .collect(Collectors.toMap(Payment::getOrderId, Function.identity()));
     }
 
-    private static OrderDtos.OrderResponse toResponse(CustomerOrder order, List<OrderItem> items, Payment payment) {
-        List<OrderDtos.OrderLineResponse> lines = items.stream().map(OrderService::toLine).toList();
+    private Map<UUID, ProductPhotos.Photo> photosOf(List<OrderItem> items) {
+        return productPhotos.firstPhotos(
+                items.stream().map(item -> item.getProductVariant().getProduct().getId()).distinct().toList());
+    }
+
+    private static OrderDtos.OrderResponse toResponse(CustomerOrder order, List<OrderItem> items, Payment payment,
+                                                      Map<UUID, ProductPhotos.Photo> photos) {
+        List<OrderDtos.OrderLineResponse> lines = items.stream()
+                .map(item -> toLine(item,
+                        photos.getOrDefault(item.getProductVariant().getProduct().getId(), ProductPhotos.Photo.NONE)))
+                .toList();
         int itemCount = items.stream().mapToInt(OrderItem::getQuantity).sum();
         OrderDtos.PaymentResponse paymentResponse = payment == null
                 ? null
@@ -150,7 +164,7 @@ public class OrderService {
                 paymentResponse);
     }
 
-    private static OrderDtos.OrderLineResponse toLine(OrderItem item) {
+    private static OrderDtos.OrderLineResponse toLine(OrderItem item, ProductPhotos.Photo photo) {
         ProductVariant variant = item.getProductVariant();
         return new OrderDtos.OrderLineResponse(
                 variant.getId(),
@@ -158,7 +172,11 @@ public class OrderService {
                 item.getProductNameSnapshot(),
                 item.getVariantLabelSnapshot(),
                 variant.getProduct().getCategory().getSlug(),
+                variant.getColorName(),
                 variant.getColorHex(),
+                photo.url(),
+                photo.color(),
+                photo.colorHex(),
                 item.getUnitPriceSnapshot(),
                 item.getQuantity(),
                 item.lineTotal());

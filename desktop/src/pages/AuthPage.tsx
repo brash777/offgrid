@@ -3,6 +3,7 @@ import { ApiError } from '../api/http';
 import { navigateTo, hrefFor } from '../app/router';
 import { useNotify } from '../app/notifications';
 import { firstName, useAuth } from '../auth/AuthContext';
+import lookYellow from '../assets/home/scene-look-yellow.webp';
 import { BrandLogo } from '../components/BrandLogo';
 import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
@@ -16,14 +17,15 @@ type FieldName = 'fullName' | 'email' | 'password';
 interface AuthPageProps {
   mode: AuthMode;
   next?: string;
+  email?: string;
 }
 
 const EMPTY_FORM: Record<FieldName, string> = { fullName: '', email: '', password: '' };
 
-export function AuthPage({ mode, next }: AuthPageProps) {
+export function AuthPage({ mode, next, email }: AuthPageProps) {
   const auth = useAuth();
   const notify = useNotify();
-  const [values, setValues] = useState(EMPTY_FORM);
+  const [values, setValues] = useState({ ...EMPTY_FORM, email: email ?? '' });
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -75,8 +77,11 @@ export function AuthPage({ mode, next }: AuthPageProps) {
 
   return (
     <div className={styles.layout}>
-      <aside className={styles.panel} data-surface="ink" aria-label={es.auth.perksLabel}>
-        <BrandLogo variant="lockup" spin className={styles.logo} />
+      <aside className={styles.panel} aria-label={es.auth.perksLabel}>
+        <img className={styles.panelImage} src={lookYellow} alt="" />
+        <span className={styles.logo}>
+          <BrandLogo variant="wordmark" />
+        </span>
         <ul className={styles.perks}>
           {es.auth.perks.map((perk) => (
             <li key={perk}>

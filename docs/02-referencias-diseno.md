@@ -46,3 +46,8 @@ Sitios reales para estudiar mientras se construyen las pantallas que faltan. De 
 1. Escoge la referencia más cercana a la pantalla que se va a construir (por ejemplo, Mobbin y SSENSE para el carrito y el pago).
 2. Anota qué patrón se toma (estructura, jerarquía, movimiento), no el contenido.
 3. Regístralo en la tabla de `desktop/DESIGN.md`, sección 1.
+
+## Referencia de la tienda nueva (18 de octubre)
+
+El estudiante dejó en `docs/referencias/` capturas de un video de TikTok ("Simple Fashion Store Landing Page with Next.js Tailwind GSAP", cuenta ThisIsAngelo). Muestra una tienda de ejemplo llamada NOVASHION. De ahí se tomó la estructura y el estilo de la tienda: entrada en blanco, titular gigante con el modelo delante, acento lima, colecciones en mosaico, novedades con filtros, vista rápida, carrito lateral, ventajas, banner de suscripción y footer con marca gigante. El detalle está en `desktop/DESIGN.md`. No se copió el nombre, los textos ni las fotos de esa tienda.
+

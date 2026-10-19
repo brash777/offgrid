@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Badge, type BadgeTone } from '../components/Badge';
 import { ButtonLink } from '../components/Button';
 import { ErrorState } from '../components/ErrorState';
-import { GarmentArt } from '../components/garment/GarmentArt';
+import { LinePhoto } from '../components/LinePhoto';
 import { SkeletonBlock } from '../components/Skeleton';
 import { useAsync } from '../hooks/useAsync';
 import { es } from '../i18n/es';
@@ -93,7 +93,14 @@ function OrderDetail({ order, placed }: { order: Order; placed: boolean }) {
             return (
               <li key={line.variantId} className={styles.line}>
                 <a className={styles.thumb} href={hrefFor({ name: 'product', id: line.productId })} tabIndex={-1} aria-hidden="true">
-                  <GarmentArt kind={garment.kind} print={garment.print} color={line.colorHex} />
+                  <LinePhoto
+                    thumbnailUrl={line.thumbnailUrl}
+                    photoColor={line.photoColor}
+                    photoColorHex={line.photoColorHex}
+                    colorName={line.colorName}
+                    colorHex={line.colorHex}
+                    fallback={garment}
+                  />
                 </a>
                 <div className={styles.lineInfo}>
                   <a className={styles.lineName} href={hrefFor({ name: 'product', id: line.productId })}>

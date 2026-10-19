@@ -104,6 +104,7 @@ public final class CatalogDtos {
             String categorySlug,
             String categoryName,
             String thumbnailUrl,
+            String photoColor,
             long totalStock,
             List<ColorResponse> colors
     ) {
@@ -120,6 +121,7 @@ public final class CatalogDtos {
             String categoryName,
             boolean active,
             List<String> imageUrls,
+            String photoColor,
             List<VariantResponse> variants
     ) {
     }

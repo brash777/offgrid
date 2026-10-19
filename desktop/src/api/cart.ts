@@ -8,6 +8,9 @@ export interface CartItem {
   size: string;
   colorName: string;
   colorHex: string;
+  thumbnailUrl: string | null;
+  photoColor: string | null;
+  photoColorHex: string | null;
   unitPrice: number;
   quantity: number;
   available: number;
