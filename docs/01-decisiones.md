@@ -165,6 +165,11 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - **"Color de la foto" en la API.** `product_images.variant_id` dice de qué variante es la foto. La API lo expone como `photoColor` (y su hexadecimal en las líneas de carrito y pedido). Con eso la app sabe cuándo mostrar la foto tal cual y cuándo aplicar el efecto camaleón.
 - **El efecto camaleón es CSS puro.** Usa una capa de color con la foto como máscara y un modo de fusión (`multiply` para prendas claras, `color` para tonos medios). No hace falta una foto por color: los colores extra de una prenda se ven a partir de la misma foto. Ver `desktop/DESIGN.md`, sección 5.
 
+**Catálogo "drip" (19 de octubre)**
+- **El catálogo nuevo entra con las migraciones dev `V902` y `V903`.** Desactivan las prendas anteriores, sin borrarlas porque los pedidos viejos las referencian, y crean 36 productos de streetwear. Las gafas de la versión anterior se reactivan.
+- **Las fotos de marcas y de personas reales no se suben a git.** Son imágenes con derechos de terceros (StockX, Nike, capturas de Pinterest y fotos de Central Cee). Usarlas en una demo académica privada es razonable, pero publicarlas en un repositorio no. Por eso viven en carpetas ignoradas: `backend/uploads/product-images/` (se sirven en `/files/product-images/**`, como las fotos que sube un administrador) y `desktop/src/assets/local/`. El héroe carga esas fotos con `import.meta.glob` y, si no existen, vuelve a las fotos libres de Unsplash. Para hacer la demo en otro computador hay que copiar esas dos carpetas.
+- **El recorte de cada prenda se hizo en el Mac con Vision**, el mismo framework de "copiar sujeto" en Fotos. En las capturas con varias prendas, primero se recortó la zona de cada una y después se le quitó el fondo.
+
 **Errores**
 - **Un solo formato de error** (`ApiErrorResponse`): `code` estable para el programa y `message` en español para la persona.
 - **Los mensajes viven en `messages.properties`**, no en el código. El código queda en inglés y la app responde en español. Agregar otro idioma sería agregar un archivo.
