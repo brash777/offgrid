@@ -24,6 +24,13 @@ export class ApiError extends Error {
 
 export type QueryValue = string | number | undefined;
 
+export function assetUrl(path: string | null | undefined): string | null {
+  if (!path) {
+    return null;
+  }
+  return /^https?:/.test(path) ? path : `${API_URL}${path}`;
+}
+
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 interface RequestOptions {

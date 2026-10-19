@@ -7,7 +7,7 @@
   gap: var(--space-2);
   overflow: hidden;
   border: var(--border-width) solid transparent;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-pill);
   font-family: var(--font-sans);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -69,8 +69,17 @@
   background: var(--color-on-primary);
 }
 
+.accent {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.accent::after {
+  background: var(--palette-white);
+}
+
 .secondary {
-  background: transparent;
+  background: var(--color-surface);
   border-color: var(--color-border-strong);
   color: var(--color-text);
 }

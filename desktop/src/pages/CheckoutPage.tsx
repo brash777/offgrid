@@ -6,7 +6,7 @@ import { hrefFor, navigate } from '../app/router';
 import { useAuth } from '../auth/AuthContext';
 import { useCart } from '../cart/CartContext';
 import { Button, ButtonLink } from '../components/Button';
-import { GarmentArt } from '../components/garment/GarmentArt';
+import { LinePhoto } from '../components/LinePhoto';
 import { Icon } from '../components/Icon';
 import { TextField } from '../components/TextField';
 import { es } from '../i18n/es';
@@ -200,7 +200,14 @@ export function CheckoutPage() {
               {cart.lines.map((line) => (
                 <li key={line.variantId} className={styles.line}>
                   <div className={styles.thumb} aria-hidden="true">
-                    <GarmentArt kind={line.garment.kind} print={line.garment.print} color={line.colorHex} />
+                    <LinePhoto
+                      thumbnailUrl={line.thumbnailUrl}
+                      photoColor={line.photoColor}
+                      photoColorHex={line.photoColorHex}
+                      colorName={line.colorName}
+                      colorHex={line.colorHex}
+                      fallback={line.garment}
+                    />
                   </div>
                   <div>
                     <p className={styles.lineName}>{line.name}</p>

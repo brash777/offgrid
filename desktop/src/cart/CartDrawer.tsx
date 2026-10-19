@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { currentHref, hrefFor } from '../app/router';
 import { ButtonLink } from '../components/Button';
-import { GarmentArt } from '../components/garment/GarmentArt';
+import { LinePhoto } from '../components/LinePhoto';
 import { Icon } from '../components/Icon';
 import { useFocusTrap } from '../hooks/useFocusTrap';
 import { es } from '../i18n/es';
@@ -25,7 +25,14 @@ function LineItem({ line }: { line: CartLine }) {
         tabIndex={-1}
         aria-hidden="true"
       >
-        <GarmentArt kind={line.garment.kind} print={line.garment.print} color={line.colorHex} />
+        <LinePhoto
+          thumbnailUrl={line.thumbnailUrl}
+          photoColor={line.photoColor}
+          photoColorHex={line.photoColorHex}
+          colorName={line.colorName}
+          colorHex={line.colorHex}
+          fallback={line.garment}
+        />
       </a>
       <div className={styles.lineInfo}>
         <a
@@ -140,6 +147,7 @@ export function CartDrawer() {
                     <span>{formatCop(cart.subtotal)}</span>
                   </p>
                   <ButtonLink
+                    variant="accent"
                     size="lg"
                     block
                     href={hrefFor({ name: 'checkout' })}
@@ -147,6 +155,7 @@ export function CartDrawer() {
                     aria-describedby="checkout-note"
                   >
                     {es.cart.checkout}
+                    <Icon name="arrow-right" />
                   </ButtonLink>
                   <p id="checkout-note" className={styles.note}>
                     {es.cart.paymentNote}

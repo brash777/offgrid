@@ -13,6 +13,9 @@ export interface CartLine {
   size: string;
   colorName: string;
   colorHex: string;
+  thumbnailUrl: string | null;
+  photoColor: string | null;
+  photoColorHex: string | null;
   garment: GarmentSpec;
   unitPrice: number;
   quantity: number;
@@ -52,6 +55,9 @@ function toLines(cart: Cart): CartLine[] {
     size: item.size,
     colorName: item.colorName,
     colorHex: item.colorHex,
+    thumbnailUrl: item.thumbnailUrl,
+    photoColor: item.photoColor,
+    photoColorHex: item.photoColorHex,
     garment: garmentFor(item.productName, item.categorySlug),
     unitPrice: Number(item.unitPrice),
     quantity: item.quantity,
