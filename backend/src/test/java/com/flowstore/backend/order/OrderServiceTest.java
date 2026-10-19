@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -143,7 +143,7 @@ class OrderServiceTest {
     @Test
     void checkoutStopsWithoutPaymentWhenStockRunsOut() {
         givenTheCart();
-        doThrow(ApiException.conflict("INSUFFICIENT_STOCK", "Hoodie Neón", "M", "Negro"))
+        lenient().doThrow(ApiException.conflict("INSUFFICIENT_STOCK", "Hoodie Neón", "M", "Negro"))
                 .when(stockService).registerSale(eq(hoodie.getId()), anyInt(), any());
 
         assertThatThrownBy(() -> orderService.checkout(userId, new OrderDtos.CheckoutRequest(APPROVED_CARD)))
