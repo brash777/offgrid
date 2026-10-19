@@ -486,7 +486,190 @@
   color: var(--color-on-primary-muted);
 }
 
+.spotlight {
+  margin-top: var(--space-9);
+  background: var(--color-bg);
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.spotlightInner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: var(--space-6);
+  max-width: var(--layout-max-width);
+  min-height: 560px;
+  margin-inline: auto;
+  padding: var(--space-8) var(--layout-gutter);
+}
+
+.spotlightBackdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: clamp(9rem, 22vw, 22rem);
+  line-height: 1;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--color-border-strong);
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.spotlightText {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.spotlightTitle {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  font-weight: var(--font-weight-regular);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.spotlightMeta {
+  display: grid;
+  gap: var(--space-1);
+  min-height: 84px;
+}
+
+.spotlightName {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.spotlightPrice {
+  font-family: var(--font-display);
+  font-size: var(--font-size-2xl);
+  color: var(--color-accent);
+}
+
+.spotlightActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.spotlightCta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 50px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-caps);
+  text-transform: uppercase;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.spotlightCta:active {
+  transform: scale(calc(1 - 0.04 * var(--motion-amount)));
+}
+
+.spotlightNav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.spotlightNav button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1rem;
+  transition: background-color var(--duration-base) var(--ease-out);
+}
+
+.spotlightNav button:hover {
+  background: var(--color-hover-wash);
+}
+
+.spotlightCount {
+  min-width: 64px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.spotlightProgress {
+  display: block;
+  width: min(320px, 100%);
+  height: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+
+.spotlightProgress span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+  animation: spotlight-progress 3200ms linear both;
+  animation-play-state: var(--motion-play);
+}
+
+.spotlightProgress span[data-paused] {
+  animation-play-state: paused;
+}
+
+@keyframes spotlight-progress {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.spotlightStage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  height: 460px;
+}
+
+.spotlightFloor {
+  position: absolute;
+  bottom: 12%;
+  width: 62%;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--color-glow), transparent 70%);
+}
+
+.spotlightShoe {
+  position: relative;
+  width: min(680px, 100%);
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 40px 40px var(--color-art-shadow));
+  user-select: none;
+}
+
 @media (max-width: 1180px) {
+  .spotlightInner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

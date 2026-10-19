@@ -11,13 +11,57 @@
 .glow {
   position: absolute;
   left: 50%;
-  bottom: -18%;
+  bottom: -22%;
   z-index: -1;
   width: min(1100px, 90vw);
   aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(closest-side, var(--color-glow), transparent 72%);
   transform: translateX(-50%);
+}
+
+.spot {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  z-index: -1;
+  width: 1200px;
+  aspect-ratio: 1;
+  margin: -600px 0 0 -600px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--color-spotlight), transparent 70%);
+  pointer-events: none;
+}
+
+.credit {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--layout-gutter);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.credit::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.chrome {
+  background: linear-gradient(180deg, var(--color-chrome-high) 0%, var(--color-chrome-mid) 58%, var(--color-chrome-low) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .title {
@@ -53,7 +97,7 @@
 
 .marker {
   position: absolute;
-  inset: 0.14em 0 0.06em;
+  inset: 0.02em -0.04em 0;
   z-index: -1;
   border-radius: 0.08em;
   background: var(--color-accent);
@@ -62,6 +106,7 @@
 
 .markedText {
   position: relative;
+  color: var(--color-on-accent);
 }
 
 .stage {
@@ -112,7 +157,7 @@
   padding: var(--space-4) var(--space-5);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-glass);
+  background: var(--color-glass-dark);
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow-float);
 }
@@ -129,9 +174,9 @@
   height: 42px;
   margin-right: -10px;
   overflow: hidden;
-  border: 2px solid var(--color-surface);
+  border: 2px solid var(--color-bg);
   border-radius: 50%;
-  background: var(--color-tile);
+  background: var(--palette-gray-100);
 }
 
 .avatar img {
