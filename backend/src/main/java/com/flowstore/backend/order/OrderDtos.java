@@ -32,7 +32,11 @@ public final class OrderDtos {
             String productName,
             String variantLabel,
             String categorySlug,
+            String colorName,
             String colorHex,
+            String thumbnailUrl,
+            String photoColor,
+            String photoColorHex,
             BigDecimal unitPrice,
             int quantity,
             BigDecimal lineTotal
