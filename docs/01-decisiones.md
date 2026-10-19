@@ -158,6 +158,13 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - **El pedido de otro usuario responde 404.** Se busca por el id del pedido y el `userId` del token en la misma consulta.
 - **La hora sale de un `Clock` inyectable en zona America/Bogota.** Así las pruebas fijan la fecha y revisan el vencimiento de la tarjeta sin depender del día en que se ejecutan.
 
+**Tienda nueva (18 de octubre)**
+- **Fotos reales en vez de prendas dibujadas.** El estudiante pidió una tienda multimarca con estética limpia. Las fotos salen de Unsplash, cuya licencia permite usarlas gratis sin pedir permiso. El fondo se quitó en el propio Mac con el framework Vision de Apple, así ninguna foto pasó por un servicio externo.
+- **Las fotos de producto viven en el backend** (`src/main/resources/catalog/`, servidas en `/files/catalog/**` con caché de 7 días). Son datos del catálogo: la base de datos guarda la ruta en `product_images` y la app solo pinta la URL que recibe. Las fotos decorativas de la portada sí van dentro de la app.
+- **El catálogo nuevo entra con la migración dev `V901`.** No se borra nada: los productos anteriores quedan inactivos, porque los pedidos ya hechos los siguen referenciando. Las migraciones ya aplicadas no se tocan.
+- **"Color de la foto" en la API.** `product_images.variant_id` dice de qué variante es la foto. La API lo expone como `photoColor` (y su hexadecimal en las líneas de carrito y pedido). Con eso la app sabe cuándo mostrar la foto tal cual y cuándo aplicar el efecto camaleón.
+- **El efecto camaleón es CSS puro.** Usa una capa de color con la foto como máscara y un modo de fusión (`multiply` para prendas claras, `color` para tonos medios). No hace falta una foto por color: los colores extra de una prenda se ven a partir de la misma foto. Ver `desktop/DESIGN.md`, sección 5.
+
 **Errores**
 - **Un solo formato de error** (`ApiErrorResponse`): `code` estable para el programa y `message` en español para la persona.
 - **Los mensajes viven en `messages.properties`**, no en el código. El código queda en inglés y la app responde en español. Agregar otro idioma sería agregar un archivo.
