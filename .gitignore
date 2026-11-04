@@ -3,4 +3,3 @@ docs/referencias/*
 !docs/referencias/README.md
 .claude/settings.local.json
 tools/blender
-desktop/src/assets/local/

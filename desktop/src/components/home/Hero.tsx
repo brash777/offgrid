@@ -23,21 +23,8 @@ import { ButtonLink } from '../Button';
 import { Icon } from '../Icon';
 import styles from './Hero.module.css';
 
-function localAssets(files: Record<string, string>): string[] {
-  return Object.entries(files)
-    .sort(([first], [second]) => first.localeCompare(second))
-    .map(([, url]) => url);
-}
-
-const LOCAL_MODELS = localAssets(
-  import.meta.glob<string>('../../assets/local/model-*.webp', { eager: true, import: 'default' }),
-);
-const LOCAL_LOOKS = localAssets(
-  import.meta.glob<string>('../../assets/local/look-*.webp', { eager: true, import: 'default' }),
-);
-const MODELS = LOCAL_MODELS.length > 0 ? LOCAL_MODELS : [modelYellow, modelCamel, modelPink];
-const LOOKS = LOCAL_LOOKS.length > 0 ? LOCAL_LOOKS : [lookYellow, lookCap, lookMilan, lookCamel];
-const SHOW_STYLE_CREDIT = LOCAL_MODELS.length > 0;
+const MODELS = [modelYellow, modelCamel, modelPink];
+const LOOKS = [lookYellow, lookCap, lookMilan, lookCamel];
 const MODEL_MS = 5200;
 const LOOK_MS = 2600;
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -133,7 +120,6 @@ export function Hero({ ready, products }: HeroProps) {
     >
       <div className={styles.glow} aria-hidden="true" />
       <motion.div className={styles.spot} style={{ x: spotX, y: spotY }} aria-hidden="true" />
-      {SHOW_STYLE_CREDIT && <p className={styles.credit}>{es.store.styleCredit}</p>}
 
       <motion.h1 id="hero-title" className={styles.title} style={{ x: titleX, y: titleY }}>
         <span className={styles.line}>

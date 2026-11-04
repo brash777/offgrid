@@ -48,7 +48,6 @@ export const es = {
     shopNow: 'Comprar ahora',
     exploreAll: 'Explorar todo',
     heroCardBody: 'Jordan, TN, Tech Fleece, Supreme y más: el drip que se ve en la calle.',
-    styleCredit: 'Inspiración de estilo: Central Cee',
     heroCardCount: (count: number) => `+${count} prendas`,
     lookbook: 'Lookbook',
     lookbookPlay: 'Reproducir lookbook',

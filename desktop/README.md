@@ -94,9 +94,7 @@ Cualquier fecha futura (por ejemplo `12/29`) y cualquier código de 3 dígitos. 
 
 ## Fotos de la demo (no están en git)
 
-Las fotos de marcas reales y de Central Cee no se versionan porque tienen derechos de terceros. Para la demo deben estar en estas dos carpetas:
-- `backend/uploads/product-images/drip-*.webp`: fotos de los productos del catálogo.
-- `desktop/src/assets/local/`: modelos y lookbook del inicio (`model-*.webp` y `look-*.webp`).
+Las fotos de productos de marcas reales no se versionan porque tienen derechos de terceros. Para la demo deben estar en `backend/uploads/product-images/drip-*.webp`.
 
-Si `assets/local` está vacía, el inicio usa las fotos libres de `assets/home`.
+Los modelos y el lookbook del inicio son fotos libres de Unsplash y sí están en git, en `src/assets/home/`.
 
