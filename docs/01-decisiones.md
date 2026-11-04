@@ -167,7 +167,8 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 
 **Catálogo "drip" (19 de octubre)**
 - **El catálogo nuevo entra con las migraciones dev `V902` y `V903`.** Desactivan las prendas anteriores, sin borrarlas porque los pedidos viejos las referencian, y crean 36 productos de streetwear. Las gafas de la versión anterior se reactivan.
-- **Las fotos de marcas y de personas reales no se suben a git.** Son imágenes con derechos de terceros (StockX, Nike, capturas de Pinterest y fotos de Central Cee). Usarlas en una demo académica privada es razonable, pero publicarlas en un repositorio no. Por eso viven en carpetas ignoradas: `backend/uploads/product-images/` (se sirven en `/files/product-images/**`, como las fotos que sube un administrador) y `desktop/src/assets/local/`. El héroe carga esas fotos con `import.meta.glob` y, si no existen, vuelve a las fotos libres de Unsplash. Para hacer la demo en otro computador hay que copiar esas dos carpetas.
+- **Las fotos de marcas no se suben a git.** Son imágenes con derechos de terceros (StockX, Nike y capturas de Pinterest). Usarlas en una demo académica privada es razonable, pero publicarlas en un repositorio no. Por eso viven en la carpeta ignorada `backend/uploads/product-images/`, que se sirve en `/files/product-images/**` como las fotos que sube un administrador. Para hacer la demo en otro computador hay que copiar esa carpeta.
+- **Sin fotos de personas reales en la portada.** El 3 de noviembre se quitaron las fotos de Central Cee del héroe y del lookbook, a pedido del estudiante. El héroe volvió a los modelos de fotos libres de Unsplash, que sí están en git.
 - **El recorte de cada prenda se hizo en el Mac con Vision**, el mismo framework de "copiar sujeto" en Fotos. En las capturas con varias prendas, primero se recortó la zona de cada una y después se le quitó el fondo.
 
 **Errores**
