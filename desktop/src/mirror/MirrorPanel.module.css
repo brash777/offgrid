@@ -31,6 +31,10 @@
   --stage-height: 250px;
 }
 
+.panel[data-tab='garments'] .dock {
+  flex-shrink: 0;
+}
+
 .panel[data-tab='stylist'][data-expanded] {
   --stage-height: 420px;
 }
@@ -141,6 +145,11 @@
 
 .tool:hover {
   transform: scale(calc(1 + 0.08 * var(--motion-amount)));
+}
+
+.tool[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 .tool:focus-visible,
@@ -351,6 +360,7 @@
 }
 
 .current {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;

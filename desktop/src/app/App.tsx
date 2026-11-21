@@ -6,6 +6,7 @@ import { CartProvider, useCart } from '../cart/CartContext';
 import { Preloader } from '../components/Preloader';
 import { QuickViewProvider } from '../components/store/QuickView';
 import { es } from '../i18n/es';
+import { isTyping } from '../lib/keyboard';
 import { MirrorProvider, useMirror } from '../mirror/MirrorContext';
 import { AccountPage } from '../pages/AccountPage';
 import { AuthPage } from '../pages/AuthPage';
@@ -38,13 +39,6 @@ function rememberIntroSeen() {
   } catch {
     return;
   }
-}
-
-function isTyping(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
-  );
 }
 
 function PageFor({ route, introDone }: { route: Route; introDone: boolean }) {

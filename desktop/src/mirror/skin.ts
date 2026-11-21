@@ -30,6 +30,7 @@ const ELBOW_AT = 0.47;
 const ELBOW_FEATHER = 0.1;
 const SHOULDER_FROM = -0.04;
 const SHOULDER_TO = 0.2;
+const SLEEVE_LAYER = 0.5;
 
 function smoothstep(from: number, to: number, value: number): number {
   const progress = Math.min(Math.max((value - from) / (to - from), 0), 1);
@@ -106,17 +107,41 @@ export function buildSkin(
     }
   }
 
-  const indices = new Uint16Array(GRID_COLUMNS * GRID_ROWS * 6);
-  let cursor = 0;
+  const torso: number[] = [];
+  const arms: number[] = [];
   for (let row = 0; row < GRID_ROWS; row += 1) {
     for (let column = 0; column < GRID_COLUMNS; column += 1) {
       const topLeft = row * (GRID_COLUMNS + 1) + column;
       const bottomLeft = topLeft + GRID_COLUMNS + 1;
-      indices.set([topLeft, bottomLeft, topLeft + 1, topLeft + 1, bottomLeft, bottomLeft + 1], cursor);
-      cursor += 6;
+      const corners = [topLeft, topLeft + 1, bottomLeft, bottomLeft + 1];
+      const sleeve = corners.reduce((sum, vertex) => sum + 1 - weights[vertex * BONES], 0) / corners.length;
+      (sleeve > SLEEVE_LAYER ? arms : torso).push(topLeft, bottomLeft, topLeft + 1, topLeft + 1, bottomLeft, bottomLeft + 1);
     }
   }
-  return { rest, uv, weights, indices };
+  return { rest, uv, weights, indices: Uint16Array.from([...torso, ...arms]) };
+}
+
+export function surfaceFrames(positions: Float32Array, target: Float32Array) {
+  const stride = GRID_COLUMNS + 1;
+  for (let row = 0; row <= GRID_ROWS; row += 1) {
+    const above = Math.max(row - 1, 0);
+    const below = Math.min(row + 1, GRID_ROWS);
+    const down = (below - above) / GRID_ROWS;
+    for (let column = 0; column <= GRID_COLUMNS; column += 1) {
+      const left = Math.max(column - 1, 0);
+      const right = Math.min(column + 1, GRID_COLUMNS);
+      const across = (right - left) / GRID_COLUMNS;
+      const vertex = row * stride + column;
+      const rightIndex = (row * stride + right) * 2;
+      const leftIndex = (row * stride + left) * 2;
+      const belowIndex = (below * stride + column) * 2;
+      const aboveIndex = (above * stride + column) * 2;
+      target[vertex * 4] = (positions[rightIndex] - positions[leftIndex]) / across;
+      target[vertex * 4 + 1] = (positions[rightIndex + 1] - positions[leftIndex + 1]) / across;
+      target[vertex * 4 + 2] = (positions[belowIndex] - positions[aboveIndex]) / down;
+      target[vertex * 4 + 3] = (positions[belowIndex + 1] - positions[aboveIndex + 1]) / down;
+    }
+  }
 }
 
 export function liftAt(fit: Fit, x: number): number {

@@ -1,10 +1,22 @@
 import type { Garment } from './garment';
 import type { Lighting } from './scene';
-import { deform, type Fit } from './skin';
+import { deform, surfaceFrames, type Fit } from './skin';
 
 export interface Shade {
   neck: [number, number, number, number];
   neckStrength: number;
+}
+
+export interface Wipe {
+  origin: [number, number];
+  down: [number, number];
+  across: [number, number];
+  edge: number;
+  softness: number;
+  curve: number;
+  side: 1 | -1;
+  sheen: number;
+  shadow: number;
 }
 
 const SHADING = 0.6;
@@ -15,17 +27,21 @@ const SOFTNESS = 0.45;
 const VERTEX_SHADER = `#version 300 es
 in vec2 position;
 in vec2 uv;
+in vec4 surfaceFrame;
 uniform vec2 resolution;
 out vec2 textureUv;
+out vec4 frame;
 void main() {
   vec2 clip = position / resolution * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
   textureUv = uv;
+  frame = surfaceFrame;
 }`;
 
 const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 in vec2 textureUv;
+in vec4 frame;
 uniform sampler2D garment;
 uniform sampler2D relief;
 uniform sampler2D scene;
@@ -45,7 +61,16 @@ uniform vec4 neck;
 uniform float neckStrength;
 uniform float grain;
 uniform float seed;
+uniform vec2 wipeOrigin;
+uniform vec4 wipeAxes;
+uniform vec4 wipe;
+uniform vec3 wipeShape;
 out vec4 color;
+
+float heightAt(vec2 point) {
+  vec2 packed = texture(relief, point).rb;
+  return packed.x + packed.y / 255.0;
+}
 
 float noise(vec2 point) {
   vec3 p = fract(vec3(point.xyx) * 0.1031);
@@ -54,17 +79,21 @@ float noise(vec2 point) {
 }
 
 void main() {
-  vec2 acrossUv = dFdx(textureUv);
-  vec2 downUv = dFdy(textureUv);
+  float area = frame.x * frame.w - frame.z * frame.y;
+  float trust = smoothstep(0.15, 0.45, area / max(length(frame.xy) * length(frame.zw), 0.0001));
+  float safeArea = max(abs(area), 0.0001);
+  vec2 acrossUv = vec2(frame.w, -frame.y) / safeArea;
+  vec2 downUv = vec2(-frame.z, frame.x) / safeArea;
   vec4 texel = texture(garment, textureUv, softness);
   vec3 albedo = texel.rgb / max(texel.a, 0.001);
-  vec2 surface = texture(relief, textureUv).rg;
-  float right = texture(relief, textureUv + vec2(reliefTexel.x, 0.0)).r;
-  float left = texture(relief, textureUv - vec2(reliefTexel.x, 0.0)).r;
-  float below = texture(relief, textureUv + vec2(0.0, reliefTexel.y)).r;
-  float above = texture(relief, textureUv - vec2(0.0, reliefTexel.y)).r;
+  vec3 packedSurface = texture(relief, textureUv).rgb;
+  vec2 surface = vec2(packedSurface.r + packedSurface.b / 255.0, packedSurface.g);
+  float right = heightAt(textureUv + vec2(reliefTexel.x, 0.0));
+  float left = heightAt(textureUv - vec2(reliefTexel.x, 0.0));
+  float below = heightAt(textureUv + vec2(0.0, reliefTexel.y));
+  float above = heightAt(textureUv - vec2(0.0, reliefTexel.y));
   vec2 gradient = vec2((right - left) / (2.0 * reliefTexel.x), (below - above) / (2.0 * reliefTexel.y));
-  vec2 slope = vec2(dot(gradient, acrossUv), -dot(gradient, downUv)) * reliefPixels;
+  vec2 slope = vec2(dot(gradient, acrossUv), dot(gradient, downUv)) * reliefPixels * trust;
   vec3 normal = normalize(vec3(-slope, 1.0));
   float facing = 0.45 + 0.55 * max(dot(normal, light), 0.0);
   float flatFacing = 0.45 + 0.55 * max(light.z, 0.0);
@@ -82,7 +111,17 @@ void main() {
   shaded = mix(shaded, around, lightWrap * (1.0 - smoothstep(0.0, 0.3, surface.r)));
   shaded += (noise(pixel + seed * 17.0) - 0.5) * grain;
 
-  float alpha = texel.a * surface.g * opacity;
+  vec2 offset = pixel - wipeOrigin;
+  float sideways = dot(offset, wipeAxes.zw);
+  float along = dot(offset, wipeAxes.xy) + wipeShape.x * sideways * sideways;
+  float passed = smoothstep(wipe.x - wipe.y, wipe.x + wipe.y, along);
+  float shown = wipe.z > 0.5 ? 1.0 - passed : (wipe.z < -0.5 ? passed : 1.0);
+  float band = (along - wipe.x + wipe.y) / max(wipe.y, 0.0001);
+  shaded += wipe.w * exp(-band * band) * (0.4 + 0.6 * facing);
+  float under = (along - wipe.x - wipe.y) / max(wipe.y * 1.5, 0.0001);
+  shaded *= 1.0 - wipeShape.y * exp(-under * under);
+
+  float alpha = texel.a * surface.g * opacity * shown;
   color = vec4(clamp(shaded, 0.0, 1.0) * alpha, alpha);
 }`;
 
@@ -103,6 +142,10 @@ const UNIFORMS = [
   'neckStrength',
   'grain',
   'seed',
+  'wipeOrigin',
+  'wipeAxes',
+  'wipe',
+  'wipeShape',
   'garment',
   'relief',
   'scene',
@@ -116,6 +159,9 @@ interface MeshBuffers {
   vao: WebGLVertexArrayObject;
   positions: WebGLBuffer;
   positionData: Float32Array;
+  restData: Float32Array;
+  frames: WebGLBuffer;
+  frameData: Float32Array;
   count: number;
 }
 
@@ -210,14 +256,22 @@ export class MeshRenderer {
     gl.uniform1f(uniforms.neckStrength, shade.neckStrength);
   }
 
-  draw(garment: Garment, bones: DOMMatrix[], fit: Fit | null, opacity: number) {
+  draw(garment: Garment, bones: DOMMatrix[], fit: Fit | null, opacity: number, wipe: Wipe | null) {
     const { gl, uniforms } = this;
     const mesh = this.meshFor(garment);
     deform(garment.skin, bones, mesh.positionData, fit);
+    deform(garment.skin, bones, mesh.restData, null);
+    surfaceFrames(mesh.restData, mesh.frameData);
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.positions);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positionData);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.frames);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.frameData);
     const scale = Math.hypot(bones[0].a, bones[0].b);
     gl.uniform1f(uniforms.opacity, opacity);
+    gl.uniform2fv(uniforms.wipeOrigin, wipe?.origin ?? [0, 0]);
+    gl.uniform4fv(uniforms.wipeAxes, wipe ? [...wipe.down, ...wipe.across] : [0, 0, 0, 0]);
+    gl.uniform4f(uniforms.wipe, wipe?.edge ?? 0, wipe?.softness ?? 1, wipe?.side ?? 0, wipe?.sheen ?? 0);
+    gl.uniform3f(uniforms.wipeShape, wipe?.curve ?? 0, wipe?.shadow ?? 0, 0);
     gl.uniform1f(uniforms.reliefPixels, garment.relief.radius * scale);
     gl.uniform2f(uniforms.reliefTexel, 1 / garment.relief.width, 1 / garment.relief.height);
     gl.activeTexture(gl.TEXTURE0);
@@ -262,6 +316,14 @@ export class MeshRenderer {
     gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
+    const frameData = new Float32Array((skin.rest.length / 2) * 4);
+    const frames = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, frames);
+    gl.bufferData(gl.ARRAY_BUFFER, frameData.byteLength, gl.DYNAMIC_DRAW);
+    const frameLocation = gl.getAttribLocation(program, 'surfaceFrame');
+    gl.enableVertexAttribArray(frameLocation);
+    gl.vertexAttribPointer(frameLocation, 4, gl.FLOAT, false, 0, 0);
+
     const uvs = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, uvs);
     gl.bufferData(gl.ARRAY_BUFFER, skin.uv, gl.STATIC_DRAW);
@@ -274,7 +336,8 @@ export class MeshRenderer {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, skin.indices, gl.STATIC_DRAW);
     gl.bindVertexArray(null);
 
-    const mesh = { texture, relief, vao, positions, positionData, count: skin.indices.length };
+    const restData = new Float32Array(skin.rest.length);
+    const mesh = { texture, relief, vao, positions, positionData, restData, frames, frameData, count: skin.indices.length };
     this.meshes.set(garment, mesh);
     return mesh;
   }

@@ -76,6 +76,8 @@ La cámara funciona como espejo: eliges un buzo o una chaqueta y te aparece pues
 - **La primera vez**, macOS pide permiso para la cámara. Si se negó, se activa en Ajustes del Sistema → Privacidad y seguridad → Cámara.
 - **Para que salga bien:** buena luz de frente y que se te vean los hombros, a un metro o metro y medio de la pantalla.
 - **Sin cámara:** «Usar una foto» pone la prenda sobre una foto tuya, de frente y de la cintura para arriba.
+- **Fondo desenfocado:** viene prendido (modo retrato). Se apaga y se prende con el botón del visor o con la tecla `F`.
+- **Cambiar de prenda:** toca una miniatura o usa las flechas ← →. La prenda nueva baja sobre la anterior como cuando uno se pone un buzo.
 - **Estilista IA:** la segunda pestaña del panel. Con sesión iniciada, le dices la ocasión y el presupuesto y Gemini arma el look con prendas reales; la que se puede probar se pone sola. Necesita `AI_API_KEY` en `backend/.env`; sin clave responde el plan B por reglas.
 - **Para probarlo sin cámara física** se le puede pasar a Chromium un video falso:
 
