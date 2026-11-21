@@ -5,12 +5,19 @@ export interface Relief {
   radius: number;
 }
 
+export interface Crease {
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+}
+
 const RELIEF_WIDTH = 320;
 const ALPHA_THRESHOLD = 128;
 const SMALL_RADIUS = 0.09;
 const LARGE_RADIUS = 0.34;
 const SMALL_SHARE = 0.55;
 const EDGE_FEATHER = 1.6;
+const CREASE_WIDTH = 1.5;
+const SMOOTHING = 1.6;
 const FAR = 1e20;
 
 function lowerEnvelope(input: Float64Array, length: number, output: Float64Array, hull: Int32Array, bounds: Float64Array) {
@@ -81,12 +88,68 @@ function distanceInside(solid: Uint8Array, width: number, height: number): Float
   return distances;
 }
 
+function carve(solid: Uint8Array, width: number, height: number, creases: Crease[], scale: number): Uint8Array {
+  const carved = Uint8Array.from(solid);
+  creases.forEach(({ from, to }) => {
+    const length = Math.hypot(to.x - from.x, to.y - from.y) * scale;
+    const steps = Math.max(1, Math.ceil(length * 2));
+    for (let step = 0; step <= steps; step += 1) {
+      const progress = step / steps;
+      const x = (from.x + (to.x - from.x) * progress) * scale;
+      const y = (from.y + (to.y - from.y) * progress) * scale;
+      for (let dy = -CREASE_WIDTH; dy <= CREASE_WIDTH; dy += 1) {
+        for (let dx = -CREASE_WIDTH; dx <= CREASE_WIDTH; dx += 1) {
+          const column = Math.round(x + dx);
+          const row = Math.round(y + dy);
+          if (column >= 0 && row >= 0 && column < width && row < height && dx * dx + dy * dy <= CREASE_WIDTH * CREASE_WIDTH) {
+            carved[row * width + column] = 0;
+          }
+        }
+      }
+    }
+  });
+  return carved;
+}
+
+function gaussian(sigma: number): Float32Array {
+  const radius = Math.ceil(sigma * 2.5);
+  const weights = Float32Array.from({ length: radius * 2 + 1 }, (_, index) => Math.exp(-((index - radius) ** 2) / (2 * sigma * sigma)));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return weights.map((weight) => weight / total);
+}
+
+function smooth(field: Float32Array, width: number, height: number, sigma: number): Float32Array {
+  const kernel = gaussian(sigma);
+  const radius = (kernel.length - 1) / 2;
+  const across = new Float32Array(field.length);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let sum = 0;
+      for (let tap = -radius; tap <= radius; tap += 1) {
+        sum += kernel[tap + radius] * field[y * width + Math.min(Math.max(x + tap, 0), width - 1)];
+      }
+      across[y * width + x] = sum;
+    }
+  }
+  const result = new Float32Array(field.length);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let sum = 0;
+      for (let tap = -radius; tap <= radius; tap += 1) {
+        sum += kernel[tap + radius] * across[Math.min(Math.max(y + tap, 0), height - 1) * width + x];
+      }
+      result[y * width + x] = sum;
+    }
+  }
+  return result;
+}
+
 function dome(progress: number): number {
   const rest = 1 - Math.min(progress, 1);
   return Math.sqrt(1 - rest * rest);
 }
 
-export function buildRelief(image: ImageBitmap, span: number): Relief {
+export function buildRelief(image: ImageBitmap, span: number, creases: Crease[]): Relief {
   const scale = RELIEF_WIDTH / image.width;
   const width = RELIEF_WIDTH;
   const height = Math.max(1, Math.round(image.height * scale));
@@ -102,15 +165,22 @@ export function buildRelief(image: ImageBitmap, span: number): Relief {
     solid[index] = pixels[index * 4 + 3] >= ALPHA_THRESHOLD ? 1 : 0;
   }
   const distances = distanceInside(solid, width, height);
+  const parts = creases.length > 0 ? distanceInside(carve(solid, width, height, creases, scale), width, height) : distances;
   const small = Math.max(span * scale * SMALL_RADIUS, 1);
   const large = Math.max(span * scale * LARGE_RADIUS, 1);
+  const lifts = new Float32Array(width * height);
+  for (let index = 0; index < distances.length; index += 1) {
+    lifts[index] = SMALL_SHARE * dome(parts[index] / small) + (1 - SMALL_SHARE) * dome(distances[index] / large);
+  }
+  const smoothed = smooth(lifts, width, height, SMOOTHING);
   const data = new Uint8Array(width * height * 4);
   for (let index = 0; index < distances.length; index += 1) {
-    const distance = distances[index];
-    const lift = SMALL_SHARE * dome(distance / small) + (1 - SMALL_SHARE) * dome(distance / large);
-    const edge = Math.min(Math.max((distance - 0.5) / EDGE_FEATHER, 0), 1);
-    data[index * 4] = Math.round(lift * 255);
+    const scaled = Math.min(Math.max(smoothed[index], 0), 1) * 255;
+    const coarse = Math.floor(scaled);
+    const edge = Math.min(Math.max((distances[index] - 0.5) / EDGE_FEATHER, 0), 1);
+    data[index * 4] = coarse;
     data[index * 4 + 1] = Math.round(edge * 255);
+    data[index * 4 + 2] = Math.round((scaled - coarse) * 255);
     data[index * 4 + 3] = 255;
   }
   return { data, width, height, radius: small / scale };

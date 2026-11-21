@@ -1,4 +1,4 @@
-import { buildRelief, type Relief } from './relief';
+import { buildRelief, type Crease, type Relief } from './relief';
 import { buildSkin, GRID_ROWS, type Skin } from './skin';
 
 export interface Point {
@@ -75,7 +75,10 @@ const ESTIMATED_SLEEVE_WIDTH = 0.2;
 const ARMPIT_DROP = 0.28;
 const GAP_SEARCH_FROM = 0.15;
 const MAX_ROW_BREAK = 3;
-const MIN_SLEEVE_DROP = 0.5;
+const MIN_SLEEVE_DROP = 0.6;
+const SLEEVE_END_DROP = 0.1;
+const SLEEVE_END_HOLD = 0.15;
+const SLEEVE_END_SHARE = 0.9;
 const MAX_SLEEVE_TILT = (40 * Math.PI) / 180;
 const MAX_INWARD_CUFF = 0.05;
 const CUFF_AT = 0.92;
@@ -158,11 +161,36 @@ function longestBlock(rows: number[]): number[] {
   return best;
 }
 
-function sleeveCuts(shape: Silhouette, shoulderRow: number, bottom: number, useGaps: boolean) {
+function sleeveEnd(shape: Silhouette, from: number, bottom: number): number {
+  const width = (row: number) => (shape.lefts[row] < 0 ? 0 : shape.rights[row] - shape.lefts[row]);
+  let widestRow = from;
+  for (let row = from; row <= bottom; row += 1) {
+    if (width(row) > width(widestRow)) {
+      widestRow = row;
+    }
+  }
+  const limit = width(widestRow) * (1 - SLEEVE_END_DROP);
+  const hold = Math.max(1, Math.round((bottom - from) * SLEEVE_END_HOLD));
+  for (let row = widestRow; row + hold <= bottom; row += 1) {
+    if (width(row) >= limit) {
+      continue;
+    }
+    let narrow = 0;
+    for (let next = row; next <= row + hold; next += 1) {
+      narrow += width(next) < limit ? 1 : 0;
+    }
+    if (narrow >= hold * SLEEVE_END_SHARE) {
+      return row;
+    }
+  }
+  return shape.height;
+}
+
+function sleeveCuts(shape: Silhouette, shoulderRow: number, bottom: number, useGaps: boolean, end: number) {
   const span = shape.rights[shoulderRow] - shape.lefts[shoulderRow];
   const searchFrom = Math.round(shoulderRow + (bottom - shoulderRow) * GAP_SEARCH_FROM);
   const gapRows: number[] = [];
-  for (let row = searchFrom; row <= bottom; row += 1) {
+  for (let row = searchFrom; row <= Math.min(bottom, end); row += 1) {
     if (shape.innerLefts[row] >= 0) {
       gapRows.push(row);
     }
@@ -173,7 +201,7 @@ function sleeveCuts(shape: Silhouette, shoulderRow: number, bottom: number, useG
   }
   const sleeveWidth = Math.round(span * ESTIMATED_SLEEVE_WIDTH);
   const rows: number[] = [];
-  for (let row = Math.round(shoulderRow + span * ARMPIT_DROP); row <= bottom; row += 1) {
+  for (let row = Math.round(shoulderRow + span * ARMPIT_DROP); row <= Math.min(bottom, end); row += 1) {
     if (shape.lefts[row] >= 0) {
       rows.push(row);
     }
@@ -185,11 +213,11 @@ function sleeveCuts(shape: Silhouette, shoulderRow: number, bottom: number, useG
   };
 }
 
-function hangsDown(sleeve: Sleeve, outward: number, reach: number, span: number): boolean {
+function hangsDown(sleeve: Sleeve, outward: number, span: number): boolean {
   const { pivot, cuff } = sleeve;
   const drop = cuff.y - pivot.y;
   return (
-    drop >= reach * MIN_SLEEVE_DROP &&
+    drop >= span * MIN_SLEEVE_DROP &&
     Math.abs(Math.atan2(cuff.x - pivot.x, drop)) <= MAX_SLEEVE_TILT &&
     (cuff.x - pivot.x) * outward >= -span * MAX_INWARD_CUFF
   );
@@ -211,16 +239,16 @@ function cutSleeves(
   pivots: [Point, Point],
   useGaps: boolean,
 ): SleeveFit | null {
-  const { rows, innerLefts, innerRights } = sleeveCuts(shape, shoulderRow, bottom, useGaps);
+  const span = shape.rights[shoulderRow] - shape.lefts[shoulderRow];
+  const end = sleeveEnd(shape, Math.round(shoulderRow + span * ARMPIT_DROP), bottom);
+  const { rows, innerLefts, innerRights } = sleeveCuts(shape, shoulderRow, bottom, useGaps, end);
   if (rows.length < 2) {
     return null;
   }
-  const span = shape.rights[shoulderRow] - shape.lefts[shoulderRow];
   const armpit = Math.min(Math.round(shoulderRow + span * ARMPIT_DROP), rows[0]);
   const lowest = rows[Math.floor((rows.length - 1) * CUFF_AT)];
   const innerLeft = fitLine(rows, innerLefts);
   const innerRight = fitLine(rows, innerRights);
-  const end = shape.height;
   const seamLeft = shape.lefts[shoulderRow] + (pivots[0].x - shape.lefts[shoulderRow]) * SLEEVE_SEAM_INSET;
   const seamRight = shape.rights[shoulderRow] - (shape.rights[shoulderRow] - pivots[1].x) * SLEEVE_SEAM_INSET;
 
@@ -246,8 +274,7 @@ function cutSleeves(
       { x: shape.width + 1, y: end },
     ],
   };
-  const reach = bottom - shoulderRow;
-  if (!hangsDown(left, -1, reach, span) || !hangsDown(right, 1, reach, span)) {
+  if (!hangsDown(left, -1, span) || !hangsDown(right, 1, span)) {
     return null;
   }
   return {
@@ -309,7 +336,11 @@ function scaleSleeve(sleeve: Sleeve, factor: number): Sleeve {
   };
 }
 
-function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image' | 'relief'> & { span: number } {
+function creasesOf(sleeves: [Sleeve, Sleeve] | null): Crease[] {
+  return (sleeves ?? []).map((sleeve) => ({ from: sleeve.outline[2], to: sleeve.outline[3] }));
+}
+
+function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image' | 'relief'> & { span: number; creases: Crease[] } {
   const scale = ANALYSIS_WIDTH / image.width;
   const width = ANALYSIS_WIDTH;
   const height = Math.max(1, Math.round(image.height * scale));
@@ -400,6 +431,7 @@ function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image' | 'relief'> 
       collar: (shoulderY - lowered(columnTop(shape, middle, top, shoulderRow))) / scale,
     },
     span: span / scale,
+    creases: creasesOf(scaledSleeves),
   };
 }
 
@@ -409,8 +441,8 @@ async function load(url: string): Promise<Garment> {
     throw new Error(`Garment image failed with ${response.status}`);
   }
   const image = await createImageBitmap(await response.blob());
-  const { span, ...shape } = measure(image);
-  return { url, image, ...shape, relief: buildRelief(image, span) };
+  const { span, creases, ...shape } = measure(image);
+  return { url, image, ...shape, relief: buildRelief(image, span, creases) };
 }
 
 export function loadGarment(url: string): Promise<Garment> {
