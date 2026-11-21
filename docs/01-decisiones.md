@@ -206,8 +206,8 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 **Cómo se pone la prenda, paso a paso:**
 1. **Se mide la prenda.** Al cargar la foto del producto, la app recorre su silueta fila por fila y encuentra dónde termina la caída del hombro y empieza la manga. Ese punto se alinea con los hombros de la persona. Así funciona con cualquier prenda nueva que suba el administrador, sin configurar nada.
 2. **Se ubica sobre el cuerpo.** El ancho sale de la distancia entre los hombros, el largo de la distancia hombros–cadera, y el ángulo de la inclinación de los hombros. Si la persona gira, el modelo da la profundidad de cada hombro y la prenda se angosta sin encogerse de alto.
-3. **Las mangas siguen los brazos.** Cada prenda se separa en torso y dos mangas. Cada manga se parte en el codo: un tramo sigue el brazo y otro el antebrazo. Si la foto no deja ver bien dónde empieza la manga, se estima, y si el resultado no tiene sentido (por ejemplo, una manga que no cuelga hacia abajo) se deja la prenda entera sin mover las mangas.
-4. **La cabeza y las manos van encima.** Con la máscara de la persona que da el modelo, la cabeza, el cuello y las manos que suben al pecho se dibujan sobre la prenda. Por eso la capucha queda detrás de la cabeza y no tapa la cara.
+3. **La prenda se dobla como tela, sin cortes.** La foto se convierte en una malla de unos 2.300 triángulos. Cada punto de la malla tiene un "peso" para cinco huesos: torso, brazo y antebrazo de cada lado. Un punto del pecho sigue solo al torso, uno del puño sigue al antebrazo, y los de la axila, el hombro y el codo mezclan dos huesos. Por eso la tela se estira y se dobla de forma continua cuando la persona mueve los brazos, en vez de partirse. Es la técnica que usan los videojuegos para doblar la piel de un personaje (*skinning*). La malla se dibuja con WebGL en la GPU. Si la foto no deja ver dónde empieza la manga, se estima, y si el resultado no tiene sentido (por ejemplo, una manga que no cuelga hacia abajo) la prenda sigue solo al torso.
+4. **La cabeza y las manos van encima.** Con la máscara de la persona que da el modelo, la cabeza, el cuello y las manos que suben al pecho se dibujan sobre la prenda, con el borde difuminado para que no se note el corte. Por eso la capucha queda detrás de la cabeza y no tapa la cara.
 5. **Sin temblores.** Cada medida pasa por un filtro *One Euro*, un suavizado que casi no deja temblar la prenda cuando la persona está quieta y casi no se atrasa cuando se mueve rápido.
 6. **La luz se ajusta.** La app mide qué tan iluminada está la escena y oscurece o aclara un poco la prenda para que no parezca pegada encima.
 
@@ -221,7 +221,7 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 **Límites honestos (para decirlos si preguntan).**
 - La prenda es una foto que se deforma en 2D, no tela simulada en 3D. Se ve mejor de frente y con buena luz.
 - Si la persona se pone de lado, la prenda se angosta pero no da la vuelta.
-- El codo de la manga es una bisagra, no una tela que se arruga.
+- La tela se estira y se dobla, pero no hace arrugas ni cae por gravedad.
 
 ## 9. Pendiente para seguir
 

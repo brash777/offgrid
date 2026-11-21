@@ -1,3 +1,5 @@
+import { buildSkin, type Skin } from './skin';
+
 export interface Point {
   x: number;
   y: number;
@@ -16,6 +18,7 @@ export interface Garment {
   rightShoulder: Point;
   hemY: number;
   sleeves: [Sleeve, Sleeve] | null;
+  skin: Skin;
 }
 
 const ANALYSIS_WIDTH = 240;
@@ -279,11 +282,13 @@ function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image'> {
   ];
   const sleeves = findSleeves(shape, shoulderRow, bottom, pivots);
 
+  const scaledSleeves: [Sleeve, Sleeve] | null = sleeves && [scaleSleeve(sleeves[0], scale), scaleSleeve(sleeves[1], scale)];
   return {
     leftShoulder: scalePoint(pivots[0], scale),
     rightShoulder: scalePoint(pivots[1], scale),
     hemY: bottom / scale,
-    sleeves: sleeves && [scaleSleeve(sleeves[0], scale), scaleSleeve(sleeves[1], scale)],
+    sleeves: scaledSleeves,
+    skin: buildSkin(image.width, image.height, span / scale, scaledSleeves),
   };
 }
 

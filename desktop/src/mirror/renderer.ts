@@ -1,5 +1,6 @@
 import type { Landmark, MPMask, NormalizedLandmark, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
 import type { Garment, Point, Sleeve } from './garment';
+import { MeshRenderer } from './meshRenderer';
 import { OneEuroFilter } from './oneEuroFilter';
 
 export interface Frame {
@@ -33,12 +34,9 @@ const HAND_RADIUS = 0.11;
 const HAND_MAX_DROP = 0.7;
 
 const SLEEVE_DEAD_ZONE = (6 * Math.PI) / 180;
-const SLEEVE_FAN_FROM = (20 * Math.PI) / 180;
-const SLEEVE_FAN_STEPS = [1 / 3, 2 / 3];
-const SHOULDER_CAP_RADIUS = 0.3;
-const ELBOW_CAP_RADIUS = 0.16;
 const ELBOW_AT = 0.47;
-const ELBOW_OVERLAP = 0.04;
+const EDGE_SOFTNESS = 0.014;
+const MASK_SCALE = 0.5;
 const MIN_SLEEVE_STRETCH = 0.75;
 const MAX_SLEEVE_STRETCH = 1.25;
 const SLEEVE_REACH = 1.04;
@@ -65,11 +63,6 @@ interface ArmFilters {
 interface SleevePose {
   upper: DOMMatrix;
   lower: DOMMatrix;
-  shoulder: DOMPoint;
-  elbow: DOMPoint;
-  length: number;
-  shoulderBend: number;
-  elbowBend: number;
 }
 
 interface Placement {
@@ -116,11 +109,6 @@ function makeCanvas(): { canvas: OffscreenCanvas; context: OffscreenCanvasRender
   return { canvas, context };
 }
 
-function tracePolygon(context: CanvasRenderingContext2D, points: Point[]) {
-  points.forEach((point, index) => (index === 0 ? context.moveTo(point.x, point.y) : context.lineTo(point.x, point.y)));
-  context.closePath();
-}
-
 function makeArmFilters(): ArmFilters {
   return {
     upper: new AngleFilter(1.8, 1.2),
@@ -160,7 +148,9 @@ class AngleFilter {
 export class MirrorRenderer {
   private readonly context: CanvasRenderingContext2D;
   private readonly person = makeCanvas();
+  private readonly region = makeCanvas();
   private readonly luma = makeCanvas();
+  private readonly mesh: MeshRenderer | null;
   private readonly filters = {
     x: new OneEuroFilter(1.5, 0.01),
     y: new OneEuroFilter(1.5, 0.01),
@@ -182,6 +172,11 @@ export class MirrorRenderer {
 
   constructor(context: CanvasRenderingContext2D) {
     this.context = context;
+    try {
+      this.mesh = new MeshRenderer();
+    } catch {
+      this.mesh = null;
+    }
   }
 
   setGarment(garment: Garment | null, now: number) {
@@ -226,6 +221,7 @@ export class MirrorRenderer {
       ? this.fade(now - this.bodyVisibleSince)
       : 1 - this.fade(now - this.bodyLostSince);
     if (this.placement && bodyOpacity > 0) {
+      this.mesh?.begin(width, height);
       if (this.previous) {
         const fadeOut = 1 - this.fade(now - this.previous.since);
         if (fadeOut <= 0) {
@@ -238,6 +234,9 @@ export class MirrorRenderer {
         const progress = this.reducedMotion ? 1 : easeOut((now - this.current.since) / ENTER_MS);
         const scale = ENTER_SCALE + (1 - ENTER_SCALE) * progress;
         this.drawGarment(this.current.garment, this.placement, progress * bodyOpacity, scale);
+      }
+      if (this.mesh) {
+        context.drawImage(this.mesh.canvas, 0, 0);
       }
       const mask = result?.segmentationMasks?.[0];
       if (mask && cutout && landmarks && this.bodyVisible && (this.current || this.previous)) {
@@ -395,7 +394,7 @@ export class MirrorRenderer {
       .translate(-middle.x, -middle.y);
   }
 
-  private sleevePose(base: DOMMatrix, sleeve: Sleeve, arm: Arm, shoulderTurn = 1, elbowTurn = 1): SleevePose {
+  private sleevePose(base: DOMMatrix, sleeve: Sleeve, arm: Arm): SleevePose {
     const pivot = base.transformPoint(new DOMPoint(sleeve.pivot.x, sleeve.pivot.y));
     const cuff = base.transformPoint(new DOMPoint(sleeve.cuff.x, sleeve.cuff.y));
     const rest = Math.atan2(cuff.y - pivot.y, cuff.x - pivot.x);
@@ -405,10 +404,8 @@ export class MirrorRenderer {
 
     const shoulderBend = wrapAngle(arm.upper - rest);
     const magnitude = Math.abs(shoulderBend);
-    const eased = magnitude < SLEEVE_DEAD_ZONE ? shoulderBend * (magnitude / SLEEVE_DEAD_ZONE) : shoulderBend;
-    const upperAngle = rest + eased * shoulderTurn;
-    const upperStretch = clamp((arm.upperLength * SLEEVE_REACH) / upperRest, MIN_SLEEVE_STRETCH, MAX_SLEEVE_STRETCH);
-    const upperScale = 1 + (upperStretch - 1) * shoulderTurn;
+    const upperAngle = rest + (magnitude < SLEEVE_DEAD_ZONE ? shoulderBend * (magnitude / SLEEVE_DEAD_ZONE) : shoulderBend);
+    const upperScale = clamp((arm.upperLength * SLEEVE_REACH) / upperRest, MIN_SLEEVE_STRETCH, MAX_SLEEVE_STRETCH);
     const upper = new DOMMatrix()
       .translate(pivot.x, pivot.y)
       .rotate(degrees(upperAngle))
@@ -417,18 +414,16 @@ export class MirrorRenderer {
       .translate(-pivot.x, -pivot.y)
       .multiply(base);
 
-    const elbowBend = arm.lower === null ? 0 : wrapAngle(arm.lower - upperAngle);
-    const lowerAngle = upperAngle + elbowBend * elbowTurn;
-    const lowerStretch =
+    const lowerAngle = arm.lower === null ? upperAngle : upperAngle + wrapAngle(arm.lower - upperAngle);
+    const lowerScale =
       arm.lowerLength === null
         ? upperScale
         : clamp((arm.lowerLength * SLEEVE_REACH) / lowerRest, MIN_SLEEVE_STRETCH, MAX_SLEEVE_STRETCH);
-    const lowerScale = upperScale + (lowerStretch - upperScale) * elbowTurn;
     const restElbow = { x: pivot.x + Math.cos(rest) * upperRest, y: pivot.y + Math.sin(rest) * upperRest };
-    const elbow = new DOMPoint(
-      pivot.x + Math.cos(upperAngle) * upperRest * upperScale,
-      pivot.y + Math.sin(upperAngle) * upperRest * upperScale,
-    );
+    const elbow = {
+      x: pivot.x + Math.cos(upperAngle) * upperRest * upperScale,
+      y: pivot.y + Math.sin(upperAngle) * upperRest * upperScale,
+    };
     const lower = new DOMMatrix()
       .translate(elbow.x, elbow.y)
       .rotate(degrees(lowerAngle))
@@ -436,112 +431,44 @@ export class MirrorRenderer {
       .rotate(degrees(-rest))
       .translate(-restElbow.x, -restElbow.y)
       .multiply(base);
-
-    return { upper, lower, shoulder: pivot, elbow, length, shoulderBend, elbowBend };
+    return { upper, lower };
   }
 
   private drawGarment(garment: Garment, placement: Placement, opacity: number, pop: number) {
-    const { context } = this;
     const base = this.garmentMatrix(garment, placement, pop);
-    const { image, sleeves } = garment;
-    const moving = sleeves ? placement.arms.map((arm) => arm !== null) : [false, false];
-
+    if (this.mesh) {
+      const bones = [base];
+      [0, 1].forEach((side) => {
+        const arm = placement.arms[side];
+        const sleeve = garment.sleeves?.[side];
+        const pose = arm && sleeve ? this.sleevePose(base, sleeve, arm) : { upper: base, lower: base };
+        bones.push(pose.upper, pose.lower);
+      });
+      this.mesh.draw(garment.image, garment.skin, bones, opacity, this.brightness);
+      return;
+    }
+    const { context } = this;
     context.save();
     context.globalAlpha = opacity;
     context.filter = `brightness(${this.brightness.toFixed(3)})`;
     context.setTransform(base);
-    if (!sleeves || !moving.some(Boolean)) {
-      context.drawImage(image, 0, 0);
-      context.restore();
-      return;
-    }
-
-    context.save();
-    context.beginPath();
-    context.rect(-2, -2, image.width + 4, image.height + 4);
-    sleeves.forEach((sleeve, index) => {
-      if (moving[index]) {
-        tracePolygon(context, sleeve.outline);
-      }
-    });
-    context.clip('evenodd');
-    context.drawImage(image, 0, 0);
-    context.restore();
-
-    sleeves.forEach((sleeve, index) => {
-      const arm = placement.arms[index];
-      if (!arm) {
-        return;
-      }
-      const pose = this.sleevePose(base, sleeve, arm);
-      if (Math.abs(pose.shoulderBend) > SLEEVE_FAN_FROM) {
-        SLEEVE_FAN_STEPS.forEach((turn) => {
-          const step = this.sleevePose(base, sleeve, arm, turn, 0);
-          this.drawSleevePart(image, sleeve, step.upper, 'upper', pose.shoulder, pose.length * SHOULDER_CAP_RADIUS);
-        });
-      }
-      this.drawSleevePart(image, sleeve, pose.upper, 'upper');
-      if (Math.abs(pose.elbowBend) > SLEEVE_FAN_FROM) {
-        SLEEVE_FAN_STEPS.forEach((turn) => {
-          const step = this.sleevePose(base, sleeve, arm, 1, turn);
-          this.drawSleevePart(image, sleeve, step.lower, 'lower', pose.elbow, pose.length * ELBOW_CAP_RADIUS);
-        });
-      }
-      this.drawSleevePart(image, sleeve, pose.lower, 'lower');
-    });
-    context.restore();
-  }
-
-  private drawSleevePart(
-    image: ImageBitmap,
-    sleeve: Sleeve,
-    matrix: DOMMatrix,
-    part: 'upper' | 'lower',
-    capCenter?: DOMPoint,
-    capRadius = 0,
-  ) {
-    const { context } = this;
-    const { pivot, cuff } = sleeve;
-    const direction = { x: cuff.x - pivot.x, y: cuff.y - pivot.y };
-    const normal = { x: -direction.y * 4, y: direction.x * 4 };
-    const [from, to] = part === 'upper' ? [-2, ELBOW_AT + ELBOW_OVERLAP] : [ELBOW_AT - ELBOW_OVERLAP, 3];
-    const along = (t: number) => ({ x: pivot.x + direction.x * t, y: pivot.y + direction.y * t });
-    const start = along(from);
-    const end = along(to);
-
-    context.save();
-    if (capCenter) {
-      context.resetTransform();
-      context.beginPath();
-      context.arc(capCenter.x, capCenter.y, capRadius, 0, Math.PI * 2);
-      context.clip();
-    }
-    context.setTransform(matrix);
-    context.beginPath();
-    tracePolygon(context, sleeve.outline);
-    context.clip();
-    context.beginPath();
-    tracePolygon(context, [
-      { x: start.x + normal.x, y: start.y + normal.y },
-      { x: end.x + normal.x, y: end.y + normal.y },
-      { x: end.x - normal.x, y: end.y - normal.y },
-      { x: start.x - normal.x, y: start.y - normal.y },
-    ]);
-    context.clip();
-    context.drawImage(image, 0, 0);
+    context.drawImage(garment.image, 0, 0);
     context.restore();
   }
 
   private drawPersonOnTop(frame: Frame, cutout: CanvasImageSource, landmarks: NormalizedLandmark[], placement: Placement) {
-    const person = this.person;
+    const { person, region } = this;
     if (person.canvas.width !== frame.width || person.canvas.height !== frame.height) {
       person.canvas.width = frame.width;
       person.canvas.height = frame.height;
     }
-    person.context.clearRect(0, 0, frame.width, frame.height);
-    this.drawSource(person.context, frame, cutout);
+    const regionWidth = Math.round(frame.width * MASK_SCALE);
+    const regionHeight = Math.round(frame.height * MASK_SCALE);
+    if (region.canvas.width !== regionWidth || region.canvas.height !== regionHeight) {
+      region.canvas.width = regionWidth;
+      region.canvas.height = regionHeight;
+    }
 
-    const { context } = this;
     const along = { x: Math.cos(placement.angle), y: Math.sin(placement.angle) };
     const up = { x: along.y, y: -along.x };
     const far = (frame.width + frame.height) * 2;
@@ -553,37 +480,44 @@ export class MirrorRenderer {
     const head = placement.frontalWidth * HEAD_HALF_WIDTH;
     const neckBase = placement.frontalWidth * NECK_RAISE;
     const headBase = placement.frontalWidth * HEAD_RAISE;
-
-    const notch = at(-neck, headBase);
-    const collar = at(0, headBase);
-    context.save();
-    context.beginPath();
-    const start = at(-head, headBase);
-    context.moveTo(start.x, start.y);
-    context.lineTo(notch.x, notch.y);
-    context.ellipse(collar.x, collar.y, neck, headBase - neckBase, placement.angle, Math.PI, 0, true);
-    [at(head, headBase), at(head, far), at(-head, far)].forEach((point) => context.lineTo(point.x, point.y));
-    context.closePath();
-    context.clip();
-    context.drawImage(person.canvas, 0, 0);
-    context.restore();
-
     const radius = placement.frontalWidth * HAND_RADIUS;
     const reach = (placement.torso ?? placement.frontalWidth * 1.4) * HAND_MAX_DROP;
     const hands = HAND_POINTS.map((index) => landmarks[index])
       .filter(visible)
       .map((landmark) => this.toDisplay(frame, landmark))
       .filter((point) => (point.x - placement.x) * -up.x + (point.y - placement.y) * -up.y < reach);
+
+    const mask = region.context;
+    mask.save();
+    mask.clearRect(0, 0, regionWidth, regionHeight);
+    mask.scale(MASK_SCALE, MASK_SCALE);
+    mask.filter = `blur(${(placement.frontalWidth * EDGE_SOFTNESS * MASK_SCALE).toFixed(1)}px)`;
+    mask.fillStyle = 'black';
+    mask.beginPath();
+    const start = at(-head, headBase);
+    const notch = at(-neck, headBase);
+    const collar = at(0, headBase);
+    mask.moveTo(start.x, start.y);
+    mask.lineTo(notch.x, notch.y);
+    mask.ellipse(collar.x, collar.y, neck, headBase - neckBase, placement.angle, Math.PI, 0, true);
+    [at(head, headBase), at(head, far), at(-head, far)].forEach((point) => mask.lineTo(point.x, point.y));
+    mask.closePath();
+    mask.fill();
     if (hands.length > 0) {
-      context.save();
-      context.beginPath();
+      mask.beginPath();
       hands.forEach((point) => {
-        context.moveTo(point.x + radius, point.y);
-        context.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        mask.moveTo(point.x + radius, point.y);
+        mask.arc(point.x, point.y, radius, 0, Math.PI * 2);
       });
-      context.clip();
-      context.drawImage(person.canvas, 0, 0);
-      context.restore();
+      mask.fill();
     }
+    mask.restore();
+
+    person.context.globalCompositeOperation = 'copy';
+    this.drawSource(person.context, frame, cutout);
+    person.context.globalCompositeOperation = 'destination-in';
+    person.context.drawImage(region.canvas, 0, 0, frame.width, frame.height);
+    person.context.globalCompositeOperation = 'source-over';
+    this.context.drawImage(person.canvas, 0, 0);
   }
 }
