@@ -6,6 +6,7 @@ import { CartProvider, useCart } from '../cart/CartContext';
 import { Preloader } from '../components/Preloader';
 import { QuickViewProvider } from '../components/store/QuickView';
 import { es } from '../i18n/es';
+import { MirrorProvider, useMirror } from '../mirror/MirrorContext';
 import { AccountPage } from '../pages/AccountPage';
 import { AuthPage } from '../pages/AuthPage';
 import { CatalogPage } from '../pages/CatalogPage';
@@ -75,6 +76,7 @@ function PageFor({ route, introDone }: { route: Route; introDone: boolean }) {
 function Shell() {
   const route = useRoute();
   const cart = useCart();
+  const mirror = useMirror();
   const mainRef = useRef<HTMLElement>(null);
   const [introDone, setIntroDone] = useState(readIntroSeen);
   const pageKey = routeKey(route);
@@ -105,11 +107,13 @@ function Shell() {
         openSearch();
       } else if (event.key.toLowerCase() === 'c') {
         cart.toggle('keyboard');
+      } else if (event.key.toLowerCase() === 'm') {
+        mirror.toggle();
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [introDone, openSearch, cart]);
+  }, [introDone, openSearch, cart, mirror]);
 
   return (
     <>
@@ -135,9 +139,11 @@ export function App() {
       <NotificationsProvider>
         <AuthProvider>
           <CartProvider>
-            <QuickViewProvider>
-              <Shell />
-            </QuickViewProvider>
+            <MirrorProvider>
+              <QuickViewProvider>
+                <Shell />
+              </QuickViewProvider>
+            </MirrorProvider>
           </CartProvider>
         </AuthProvider>
       </NotificationsProvider>

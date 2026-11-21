@@ -4,6 +4,7 @@ import { BrandLogo } from '../../components/BrandLogo';
 import { Icon } from '../../components/Icon';
 import { useScrolled } from '../../hooks/useScrolled';
 import { es } from '../../i18n/es';
+import { useMirror } from '../../mirror/MirrorContext';
 import { currentHref, hrefFor, type Route } from '../router';
 import styles from './SiteHeader.module.css';
 
@@ -21,6 +22,7 @@ function isCurrent(route: Route, category: string | undefined): boolean {
 export function SiteHeader({ route, onSearch }: SiteHeaderProps) {
   const cart = useCart();
   const auth = useAuth();
+  const mirror = useMirror();
   const scrolled = useScrolled(SCROLL_THRESHOLD);
   const onAuthPage = route.name === 'login' || route.name === 'register';
 
@@ -53,6 +55,17 @@ export function SiteHeader({ route, onSearch }: SiteHeaderProps) {
           aria-keyshortcuts="/"
         >
           <Icon name="search" />
+        </button>
+        <button
+          type="button"
+          className={styles.iconButton}
+          onClick={() => mirror.toggle()}
+          aria-label={es.mirror.open}
+          aria-expanded={mirror.isOpen}
+          aria-keyshortcuts="M"
+          title={es.mirror.region}
+        >
+          <Icon name="camera" />
         </button>
         {auth.status === 'authenticated' && (
           <a

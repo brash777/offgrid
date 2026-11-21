@@ -93,6 +93,9 @@
   --color-chrome-low: #8a8e96;
   --color-border-dark: rgb(255 255 255 / 0.2);
   --color-on-primary-muted: rgb(251 250 248 / 0.72);
+  --color-live: var(--palette-red-400);
+  --color-mirror-panel: var(--palette-ink-950);
+  --color-mirror-stage: var(--palette-ink-900);
 
   --rarity-common: var(--palette-rarity-common);
   --rarity-rare: var(--palette-rarity-rare);
@@ -185,6 +188,7 @@
   --z-raised: 10;
   --z-header: 100;
   --z-overlay: 500;
+  --z-mirror: 550;
   --z-drawer: 600;
   --z-toast: 700;
   --z-intro: 900;
