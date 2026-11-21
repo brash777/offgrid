@@ -223,7 +223,38 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - Si la persona se pone de lado, la prenda se angosta pero no da la vuelta.
 - La tela se estira y se dobla, pero no hace arrugas ni cae por gravedad.
 
-## 9. Pendiente para seguir
+## 9. Estilista con IA (Gemini, 20 de noviembre de 2026)
+
+**Qué hace.** En el probador hay una pestaña «Estilista IA». La persona escribe para qué ocasión y cuánto quiere gastar, o toca una idea rápida como «Para una fiesta». Si quiere, deja que la IA vea su estilo en la cámara. Gemini arma un outfit con prendas **reales** de la tienda y **la primera prenda que se puede probar se pone sola en el espejo**. Así la IA y el probador trabajan juntos.
+
+**Proveedor: Google Gemini, plan gratis.**
+- Se usa `gemini-3.5-flash-lite`, que responde en menos de un segundo, entiende imágenes y tiene cupo diario gratis en Google AI Studio.
+- El modelo de Gemini que *genera* fotos de la persona con la ropa ya no tiene plan gratis en la API, y el Virtual Try-On de Google Cloud es de pago. Por eso el probador sigue siendo el espejo en el equipo y Gemini hace de estilista.
+- La conexión es por la **API compatible con OpenAI** (`/v1beta/openai/chat/completions`) con un cliente HTTP propio (`ChatModelClient`). Proveedor, modelo y clave salen de variables de entorno (`AI_BASE_URL`, `AI_MODEL`, `AI_API_KEY`). Cambiar a otro proveedor compatible (Groq, OpenRouter…) es cambiar esas variables.
+
+**Cómo se evita que invente.**
+1. La IA no recibe el catálogo en el texto: tiene una **herramienta** `search_catalog` que consulta la base de datos y devuelve solo productos activos con stock, con su precio real.
+2. Para responder tiene que llamar a otra herramienta, `recommend_outfit`, con los ids de los productos. En la última ronda se le obliga a usarla.
+3. El servidor **vuelve a validar** cada id contra la base de datos. Si un id no existe, está inactivo o no tiene stock, se descarta. Los precios que ve el cliente salen siempre de la base de datos, nunca del texto de la IA.
+4. Si la persona escribió un presupuesto y la suma se pasa, el servidor quita prendas hasta que cuadre.
+
+**Reglas del proyecto que cumple.**
+- **La clave solo en el servidor.** La app de escritorio nunca la ve, solo habla con nuestro backend.
+- **Interruptor `AI_ENABLED`.** Si está apagado o no hay clave, responde el **plan B por reglas** (`StylistRules`). Ese plan lee el presupuesto («800 mil», «1.200.000», «1,5 millones») y la ocasión (fiesta, frío, gym, cita) y escoge prendas del catálogo. La respuesta dice «Sin IA · por reglas».
+- **Si la IA falla** (sin internet, cupo agotado, error), también responde el plan B. Nada se cae.
+- **Límite por usuario:** 25 consultas al día (`AI_DAILY_LIMIT`). Cada consulta a la IA queda en la tabla `stylist_requests` con el usuario, si llevaba foto y la hora; nunca se guardan el texto ni la foto. Al pasar el límite responde 429 con un mensaje claro.
+- **El userId sale del JWT.** Hay que tener sesión para usar el estilista; el probador funciona sin sesión.
+
+**La foto (Ley 1581).**
+- Solo se manda si la persona marca «Que la IA vea mi estilo en la cámara». Debajo dice que la foto va a Google Gemini solo para esa respuesta y que no se guarda.
+- El backend exige `photoConsent`, revisa que de verdad sea un JPG o PNG (por sus primeros bytes) y que pese menos de 1 MB. La reduce a 640 px, la manda a Gemini y no la escribe en ningún lado.
+- Al modelo se le prohíbe opinar del cuerpo, la cara, la edad o la piel: solo mira la ropa y los colores.
+
+**No se guarda el historial del chat.** El alcance hablaba de conversaciones borrables. Al final cada pedido es independiente y no se guarda nada del texto, así hay menos datos personales y nada que borrar.
+
+**Migración.** `V2__stylist_requests.sql`. En la base de desarrollo ya estaban aplicadas las semillas V900–V903, así que el perfil `dev` activa `out-of-order` de Flyway para aplicar la V2 después. En una base nueva corren en orden normal.
+
+## 10. Pendiente para seguir
 
 Para que el backend llegue a correr contra una base de datos real falta que me compartas (en el chat o directo en tu `.env`, nunca en un commit):
 
