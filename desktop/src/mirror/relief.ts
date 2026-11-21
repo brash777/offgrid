@@ -18,6 +18,7 @@ const SMALL_SHARE = 0.55;
 const EDGE_FEATHER = 1.6;
 const CREASE_WIDTH = 1.5;
 const SMOOTHING = 1.6;
+const EDGE_SMOOTHING = 1.1;
 const FAR = 1e20;
 
 function lowerEnvelope(input: Float64Array, length: number, output: Float64Array, hull: Int32Array, bounds: Float64Array) {
@@ -173,13 +174,18 @@ export function buildRelief(image: ImageBitmap, span: number, creases: Crease[])
     lifts[index] = SMALL_SHARE * dome(parts[index] / small) + (1 - SMALL_SHARE) * dome(distances[index] / large);
   }
   const smoothed = smooth(lifts, width, height, SMOOTHING);
+  const edges = smooth(
+    distances.map((distance) => Math.min(Math.max((distance - 0.5) / EDGE_FEATHER, 0), 1)),
+    width,
+    height,
+    EDGE_SMOOTHING,
+  );
   const data = new Uint8Array(width * height * 4);
   for (let index = 0; index < distances.length; index += 1) {
     const scaled = Math.min(Math.max(smoothed[index], 0), 1) * 255;
     const coarse = Math.floor(scaled);
-    const edge = Math.min(Math.max((distances[index] - 0.5) / EDGE_FEATHER, 0), 1);
     data[index * 4] = coarse;
-    data[index * 4 + 1] = Math.round(edge * 255);
+    data[index * 4 + 1] = Math.round(edges[index] * 255);
     data[index * 4 + 2] = Math.round((scaled - coarse) * 255);
     data[index * 4 + 3] = 255;
   }

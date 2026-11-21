@@ -159,6 +159,7 @@ interface MeshBuffers {
   vao: WebGLVertexArrayObject;
   positions: WebGLBuffer;
   positionData: Float32Array;
+  restData: Float32Array;
   frames: WebGLBuffer;
   frameData: Float32Array;
   count: number;
@@ -259,7 +260,8 @@ export class MeshRenderer {
     const { gl, uniforms } = this;
     const mesh = this.meshFor(garment);
     deform(garment.skin, bones, mesh.positionData, fit);
-    surfaceFrames(mesh.positionData, mesh.frameData);
+    deform(garment.skin, bones, mesh.restData, null);
+    surfaceFrames(mesh.restData, mesh.frameData);
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.positions);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positionData);
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.frames);
@@ -334,7 +336,8 @@ export class MeshRenderer {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, skin.indices, gl.STATIC_DRAW);
     gl.bindVertexArray(null);
 
-    const mesh = { texture, relief, vao, positions, positionData, frames, frameData, count: skin.indices.length };
+    const restData = new Float32Array(skin.rest.length);
+    const mesh = { texture, relief, vao, positions, positionData, restData, frames, frameData, count: skin.indices.length };
     this.meshes.set(garment, mesh);
     return mesh;
   }
