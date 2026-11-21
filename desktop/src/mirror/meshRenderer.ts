@@ -1,4 +1,16 @@
-import { deform, type Skin } from './skin';
+import type { Garment } from './garment';
+import type { Lighting } from './scene';
+import { deform, type Fit } from './skin';
+
+export interface Shade {
+  neck: [number, number, number, number];
+  neckStrength: number;
+}
+
+const SHADING = 0.6;
+const OCCLUSION = 0.8;
+const LIGHT_WRAP = 0.22;
+const SOFTNESS = 0.45;
 
 const VERTEX_SHADER = `#version 300 es
 in vec2 position;
@@ -12,19 +24,95 @@ void main() {
 }`;
 
 const FRAGMENT_SHADER = `#version 300 es
-precision mediump float;
+precision highp float;
 in vec2 textureUv;
 uniform sampler2D garment;
+uniform sampler2D relief;
+uniform sampler2D scene;
+uniform vec2 resolution;
+uniform vec2 reliefTexel;
+uniform float reliefPixels;
 uniform float opacity;
-uniform float brightness;
+uniform float exposure;
+uniform vec2 levels;
+uniform vec3 tint;
+uniform vec3 light;
+uniform float shading;
+uniform float occlusion;
+uniform float lightWrap;
+uniform float softness;
+uniform vec4 neck;
+uniform float neckStrength;
+uniform float grain;
+uniform float seed;
 out vec4 color;
+
+float noise(vec2 point) {
+  vec3 p = fract(vec3(point.xyx) * 0.1031);
+  p += dot(p, p.yzx + 33.33);
+  return fract((p.x + p.y) * p.z);
+}
+
 void main() {
-  vec4 texel = texture(garment, textureUv);
-  color = vec4(texel.rgb * brightness, texel.a) * opacity;
+  vec2 acrossUv = dFdx(textureUv);
+  vec2 downUv = dFdy(textureUv);
+  vec4 texel = texture(garment, textureUv, softness);
+  vec3 albedo = texel.rgb / max(texel.a, 0.001);
+  vec2 surface = texture(relief, textureUv).rg;
+  float right = texture(relief, textureUv + vec2(reliefTexel.x, 0.0)).r;
+  float left = texture(relief, textureUv - vec2(reliefTexel.x, 0.0)).r;
+  float below = texture(relief, textureUv + vec2(0.0, reliefTexel.y)).r;
+  float above = texture(relief, textureUv - vec2(0.0, reliefTexel.y)).r;
+  vec2 gradient = vec2((right - left) / (2.0 * reliefTexel.x), (below - above) / (2.0 * reliefTexel.y));
+  vec2 slope = vec2(dot(gradient, acrossUv), -dot(gradient, downUv)) * reliefPixels;
+  vec3 normal = normalize(vec3(-slope, 1.0));
+  float facing = 0.45 + 0.55 * max(dot(normal, light), 0.0);
+  float flatFacing = 0.45 + 0.55 * max(light.z, 0.0);
+  float lit = mix(1.0, facing / flatFacing, shading);
+  float cavity = mix(occlusion, 1.0, smoothstep(0.0, 0.55, surface.r));
+
+  vec2 pixel = vec2(gl_FragCoord.x, resolution.y - gl_FragCoord.y);
+  vec2 fromNeck = (pixel - neck.xy) / neck.zw;
+  float chin = 1.0 - neckStrength * exp(-dot(fromNeck, fromNeck));
+
+  vec3 shaded = albedo * exposure * lit * cavity * chin;
+  shaded = levels.x + shaded * (levels.y - levels.x);
+  shaded *= tint;
+  vec3 around = texture(scene, pixel / resolution).rgb;
+  shaded = mix(shaded, around, lightWrap * (1.0 - smoothstep(0.0, 0.3, surface.r)));
+  shaded += (noise(pixel + seed * 17.0) - 0.5) * grain;
+
+  float alpha = texel.a * surface.g * opacity;
+  color = vec4(clamp(shaded, 0.0, 1.0) * alpha, alpha);
 }`;
+
+const UNIFORMS = [
+  'resolution',
+  'reliefTexel',
+  'reliefPixels',
+  'opacity',
+  'exposure',
+  'levels',
+  'tint',
+  'light',
+  'shading',
+  'occlusion',
+  'lightWrap',
+  'softness',
+  'neck',
+  'neckStrength',
+  'grain',
+  'seed',
+  'garment',
+  'relief',
+  'scene',
+] as const;
+
+type UniformName = (typeof UNIFORMS)[number];
 
 interface MeshBuffers {
   texture: WebGLTexture;
+  relief: WebGLTexture;
   vao: WebGLVertexArrayObject;
   positions: WebGLBuffer;
   positionData: Float32Array;
@@ -44,16 +132,23 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string): WebG
   return shader;
 }
 
+function linearTexture(gl: WebGL2RenderingContext): WebGLTexture {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return texture;
+}
+
 export class MeshRenderer {
   readonly canvas = new OffscreenCanvas(1, 1);
   private readonly gl: WebGL2RenderingContext;
   private readonly program: WebGLProgram;
-  private readonly uniforms: {
-    resolution: WebGLUniformLocation | null;
-    opacity: WebGLUniformLocation | null;
-    brightness: WebGLUniformLocation | null;
-  };
-  private readonly meshes = new WeakMap<Skin, MeshBuffers>();
+  private readonly uniforms: Record<UniformName, WebGLUniformLocation | null>;
+  private readonly sceneTexture: WebGLTexture;
+  private readonly meshes = new WeakMap<Garment, MeshBuffers>();
 
   constructor() {
     const gl = this.canvas.getContext('webgl2', { premultipliedAlpha: true, antialias: true });
@@ -69,17 +164,23 @@ export class MeshRenderer {
       throw new Error(gl.getProgramInfoLog(program) ?? 'Program link failed');
     }
     this.program = program;
-    this.uniforms = {
-      resolution: gl.getUniformLocation(program, 'resolution'),
-      opacity: gl.getUniformLocation(program, 'opacity'),
-      brightness: gl.getUniformLocation(program, 'brightness'),
-    };
+    this.uniforms = Object.fromEntries(UNIFORMS.map((name) => [name, gl.getUniformLocation(program, name)])) as Record<
+      UniformName,
+      WebGLUniformLocation | null
+    >;
+    gl.activeTexture(gl.TEXTURE2);
+    this.sceneTexture = linearTexture(gl);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128, 255]));
+    gl.useProgram(program);
+    gl.uniform1i(this.uniforms.garment, 0);
+    gl.uniform1i(this.uniforms.relief, 1);
+    gl.uniform1i(this.uniforms.scene, 2);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   }
 
-  begin(width: number, height: number) {
-    const { gl } = this;
+  begin(width: number, height: number, scene: OffscreenCanvas | null, lighting: Lighting, shade: Shade) {
+    const { gl, uniforms } = this;
     if (this.canvas.width !== width || this.canvas.height !== height) {
       this.canvas.width = width;
       this.canvas.height = height;
@@ -88,30 +189,54 @@ export class MeshRenderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(this.program);
-    gl.uniform2f(this.uniforms.resolution, width, height);
+    if (scene) {
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, scene);
+    }
+    gl.uniform2f(uniforms.resolution, width, height);
+    gl.uniform1f(uniforms.exposure, lighting.exposure);
+    gl.uniform2f(uniforms.levels, lighting.black, lighting.white);
+    gl.uniform3fv(uniforms.tint, lighting.tint);
+    gl.uniform3fv(uniforms.light, lighting.light);
+    gl.uniform1f(uniforms.grain, lighting.grain);
+    gl.uniform1f(uniforms.seed, lighting.seed);
+    gl.uniform1f(uniforms.shading, SHADING);
+    gl.uniform1f(uniforms.occlusion, OCCLUSION);
+    gl.uniform1f(uniforms.lightWrap, scene ? LIGHT_WRAP : 0);
+    gl.uniform1f(uniforms.softness, SOFTNESS);
+    gl.uniform4fv(uniforms.neck, shade.neck);
+    gl.uniform1f(uniforms.neckStrength, shade.neckStrength);
   }
 
-  draw(image: ImageBitmap, skin: Skin, bones: DOMMatrix[], opacity: number, brightness: number) {
-    const { gl } = this;
-    const mesh = this.meshFor(image, skin);
-    deform(skin, bones, mesh.positionData);
+  draw(garment: Garment, bones: DOMMatrix[], fit: Fit | null, opacity: number) {
+    const { gl, uniforms } = this;
+    const mesh = this.meshFor(garment);
+    deform(garment.skin, bones, mesh.positionData, fit);
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.positions);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.positionData);
-    gl.uniform1f(this.uniforms.opacity, opacity);
-    gl.uniform1f(this.uniforms.brightness, brightness);
+    const scale = Math.hypot(bones[0].a, bones[0].b);
+    gl.uniform1f(uniforms.opacity, opacity);
+    gl.uniform1f(uniforms.reliefPixels, garment.relief.radius * scale);
+    gl.uniform2f(uniforms.reliefTexel, 1 / garment.relief.width, 1 / garment.relief.height);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, mesh.texture);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, mesh.relief);
     gl.bindVertexArray(mesh.vao);
     gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0);
     gl.bindVertexArray(null);
   }
 
-  private meshFor(image: ImageBitmap, skin: Skin): MeshBuffers {
-    const cached = this.meshes.get(skin);
+  private meshFor(garment: Garment): MeshBuffers {
+    const cached = this.meshes.get(garment);
     if (cached) {
       return cached;
     }
     const { gl, program } = this;
+    const { image, skin, relief: shape } = garment;
+    gl.activeTexture(gl.TEXTURE0);
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
@@ -121,6 +246,11 @@ export class MeshRenderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.activeTexture(gl.TEXTURE1);
+    const relief = linearTexture(gl);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, shape.width, shape.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, shape.data);
 
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
@@ -144,8 +274,8 @@ export class MeshRenderer {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, skin.indices, gl.STATIC_DRAW);
     gl.bindVertexArray(null);
 
-    const mesh = { texture, vao, positions, positionData, count: skin.indices.length };
-    this.meshes.set(skin, mesh);
+    const mesh = { texture, relief, vao, positions, positionData, count: skin.indices.length };
+    this.meshes.set(garment, mesh);
     return mesh;
   }
 }

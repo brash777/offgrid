@@ -1,4 +1,5 @@
-import { buildSkin, type Skin } from './skin';
+import { buildRelief, type Relief } from './relief';
+import { buildSkin, GRID_ROWS, type Skin } from './skin';
 
 export interface Point {
   x: number;
@@ -11,6 +12,25 @@ export interface Sleeve {
   outline: Point[];
 }
 
+export interface Torso {
+  center: number;
+  top: number;
+  hem: number;
+  halfWidths: Float32Array;
+  tops: TopSample[];
+}
+
+export interface TopSample {
+  x: number;
+  reach: number;
+  top: number;
+}
+
+export interface Neckline {
+  hooded: boolean;
+  collar: number;
+}
+
 export interface Garment {
   url: string;
   image: ImageBitmap;
@@ -19,6 +39,23 @@ export interface Garment {
   hemY: number;
   sleeves: [Sleeve, Sleeve] | null;
   skin: Skin;
+  torso: Torso;
+  neckline: Neckline;
+  relief: Relief;
+}
+
+interface Seams {
+  armpit: number;
+  last: number;
+  seamLeft: number;
+  seamRight: number;
+  innerLeft: (y: number) => number;
+  innerRight: (y: number) => number;
+}
+
+interface SleeveFit {
+  sleeves: [Sleeve, Sleeve];
+  seams: Seams;
 }
 
 const ANALYSIS_WIDTH = 240;
@@ -27,7 +64,9 @@ const SLOPE_WINDOW = 0.03;
 const SHOULDER_SEARCH_DEPTH = 0.6;
 const CORNER_SLOPE_RATIO = 0.4;
 const MIN_SHOULDER_SPAN = 0.55;
-const SHOULDER_INSET = 0.12;
+const SHOULDER_INSET = 0.14;
+const SHOULDER_SLOPE = 1;
+const SHOULDER_WALK = 0.1;
 const SHOULDER_DROP = 0.05;
 const MIN_GAP_PIXELS = 2;
 const MIN_SLEEVE_ROWS = 0.15;
@@ -40,6 +79,9 @@ const MIN_SLEEVE_DROP = 0.5;
 const MAX_SLEEVE_TILT = (40 * Math.PI) / 180;
 const MAX_INWARD_CUFF = 0.05;
 const CUFF_AT = 0.92;
+const CROWN_LIMIT = 0.28;
+const HOOD_AREA = 0.38;
+const TOP_SAMPLES = [-1, -0.7, 0.7, 1];
 
 const cache = new Map<string, Promise<Garment>>();
 
@@ -158,7 +200,7 @@ function findSleeves(
   shoulderRow: number,
   bottom: number,
   pivots: [Point, Point],
-): [Sleeve, Sleeve] | null {
+): SleeveFit | null {
   return cutSleeves(shape, shoulderRow, bottom, pivots, true) ?? cutSleeves(shape, shoulderRow, bottom, pivots, false);
 }
 
@@ -168,7 +210,7 @@ function cutSleeves(
   bottom: number,
   pivots: [Point, Point],
   useGaps: boolean,
-): [Sleeve, Sleeve] | null {
+): SleeveFit | null {
   const { rows, innerLefts, innerRights } = sleeveCuts(shape, shoulderRow, bottom, useGaps);
   if (rows.length < 2) {
     return null;
@@ -208,7 +250,51 @@ function cutSleeves(
   if (!hangsDown(left, -1, reach, span) || !hangsDown(right, 1, reach, span)) {
     return null;
   }
-  return [left, right];
+  return {
+    sleeves: [left, right],
+    seams: { armpit, last: rows[rows.length - 1], seamLeft, seamRight, innerLeft, innerRight },
+  };
+}
+
+function torsoProfile(
+  shape: Silhouette,
+  shoulderRow: number,
+  bottom: number,
+  pivots: [Point, Point],
+  seams: Seams | null,
+  scale: number,
+  imageHeight: number,
+): Torso {
+  const center = (pivots[0].x + pivots[1].x) / 2;
+  const halfWidths = new Float32Array(GRID_ROWS + 1);
+  for (let row = 0; row <= GRID_ROWS; row += 1) {
+    const y = Math.round((row / GRID_ROWS) * imageHeight * scale);
+    if (y < shoulderRow || y > bottom || shape.lefts[y] < 0) {
+      continue;
+    }
+    let left = shape.lefts[y];
+    let right = shape.rights[y];
+    if (seams && y <= seams.last) {
+      const progress = Math.min((y - shoulderRow) / Math.max(seams.armpit - shoulderRow, 1), 1);
+      const innerLeft =
+        y < seams.armpit ? seams.seamLeft + (seams.innerLeft(seams.armpit) - seams.seamLeft) * progress : seams.innerLeft(y);
+      const innerRight =
+        y < seams.armpit ? seams.seamRight + (seams.innerRight(seams.armpit) - seams.seamRight) * progress : seams.innerRight(y);
+      left = Math.max(left, innerLeft);
+      right = Math.min(right, innerRight);
+    }
+    halfWidths[row] = Math.max((right - left) / 2, 0) / scale;
+  }
+  return { center: center / scale, top: shoulderRow / scale, hem: bottom / scale, halfWidths, tops: [] };
+}
+
+function columnTop(shape: Silhouette, x: number, from: number, to: number): number {
+  for (let row = from; row <= to; row += 1) {
+    if (shape.lefts[row] >= 0 && shape.lefts[row] <= x && shape.rights[row] >= x) {
+      return row;
+    }
+  }
+  return to;
 }
 
 function scalePoint(point: Point, factor: number): Point {
@@ -223,7 +309,7 @@ function scaleSleeve(sleeve: Sleeve, factor: number): Sleeve {
   };
 }
 
-function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image'> {
+function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image' | 'relief'> & { span: number } {
   const scale = ANALYSIS_WIDTH / image.width;
   const width = ANALYSIS_WIDTH;
   const height = Math.max(1, Math.round(image.height * scale));
@@ -273,6 +359,10 @@ function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image'> {
       shoulderRow += 1;
     }
   }
+  const walkEnd = Math.min(shoulderRow + Math.round((bottom - top) * SHOULDER_WALK), bottom - step);
+  while (shoulderRow < walkEnd && (halfWidth(shoulderRow + step) - halfWidth(shoulderRow)) / step >= SHOULDER_SLOPE) {
+    shoulderRow += 1;
+  }
   const span = rights[shoulderRow] - lefts[shoulderRow];
   const inset = span * SHOULDER_INSET;
   const shoulderY = shoulderRow + span * SHOULDER_DROP;
@@ -280,7 +370,22 @@ function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image'> {
     { x: lefts[shoulderRow] + inset, y: shoulderY },
     { x: rights[shoulderRow] - inset, y: shoulderY },
   ];
-  const sleeves = findSleeves(shape, shoulderRow, bottom, pivots);
+  const fit = findSleeves(shape, shoulderRow, bottom, pivots);
+  const sleeves = fit?.sleeves ?? null;
+  const crown = shoulderRow - top;
+  const squash = crown > span * CROWN_LIMIT ? (span * CROWN_LIMIT) / crown : 1;
+  const pivotSpan = pivots[1].x - pivots[0].x;
+  let crownArea = 0;
+  for (let row = top; row < shoulderRow; row += 1) {
+    crownArea += lefts[row] < 0 ? 0 : rights[row] - lefts[row];
+  }
+  const lowered = (row: number) => (row < shoulderRow ? shoulderRow - (shoulderRow - row) * squash : row);
+  const torso = torsoProfile(shape, shoulderRow, bottom, pivots, fit?.seams ?? null, scale, image.height);
+  const middle = (pivots[0].x + pivots[1].x) / 2;
+  torso.tops = TOP_SAMPLES.map((reach) => {
+    const x = middle + ((reach < 0 ? pivots[0].x : pivots[1].x) - middle) * Math.abs(reach);
+    return { x: x / scale, reach, top: (shoulderY - lowered(columnTop(shape, x, top, shoulderRow))) / scale };
+  });
 
   const scaledSleeves: [Sleeve, Sleeve] | null = sleeves && [scaleSleeve(sleeves[0], scale), scaleSleeve(sleeves[1], scale)];
   return {
@@ -288,7 +393,13 @@ function measure(image: ImageBitmap): Omit<Garment, 'url' | 'image'> {
     rightShoulder: scalePoint(pivots[1], scale),
     hemY: bottom / scale,
     sleeves: scaledSleeves,
-    skin: buildSkin(image.width, image.height, span / scale, scaledSleeves),
+    skin: buildSkin(image.width, image.height, span / scale, scaledSleeves, { line: shoulderRow / scale, squash }),
+    torso,
+    neckline: {
+      hooded: crownArea > pivotSpan * pivotSpan * HOOD_AREA,
+      collar: (shoulderY - lowered(columnTop(shape, middle, top, shoulderRow))) / scale,
+    },
+    span: span / scale,
   };
 }
 
@@ -298,7 +409,8 @@ async function load(url: string): Promise<Garment> {
     throw new Error(`Garment image failed with ${response.status}`);
   }
   const image = await createImageBitmap(await response.blob());
-  return { url, image, ...measure(image) };
+  const { span, ...shape } = measure(image);
+  return { url, image, ...shape, relief: buildRelief(image, span) };
 }
 
 export function loadGarment(url: string): Promise<Garment> {
