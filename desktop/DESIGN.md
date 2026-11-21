@@ -1,5 +1,12 @@
 # Sistema de diseño
 
+> **Versión 1.2, 20 de noviembre de 2026 (probador en vivo).** Se agrega el panel del espejo con cámara:
+> - **Panel oscuro en la esquina inferior derecha** (`--color-mirror-panel`), con bordes redondeados grandes y la misma sombra de los paneles flotantes. No tapa la página: se puede seguir comprando con el panel abierto.
+> - **Escenario 4:5** con la cámara en espejo. Arriba, la píldora «En vivo» con un punto rojo que late (`--color-live`) o «Tu foto» con punto lima. Abajo, el nombre y precio de la prenda puesta y la tira de miniaturas: la elegida lleva un anillo lima.
+> - **Entrada:** sube 28 px y escala desde 0.96 en 0.36 s. La prenda nueva entra con un fundido y una escala de 0.92 a 1, y la anterior se desvanece. Con «reducir movimiento» la prenda cambia sin animación y el punto deja de latir.
+> - **Teclado:** `M` abre y cierra, `Esc` cierra con el foco dentro, y `←` `→` cambian de prenda en la tira.
+> - **Capa:** `--z-mirror` (550) queda sobre la vista rápida y debajo del carrito.
+
 > **Versión 1.1, 19 de octubre de 2026 (estilo "drip").** El estudiante pidió vender streetwear de marca (Jordan, TN, Tech Fleece, Supreme, Sp5der, Corteiz, Chrome Hearts, Ralph Lauren, perfumes) con estética de rap y calle. Cambios sobre la 1.0:
 > - **Héroe oscuro.** Fondo casi negro, la primera línea del titular en cromo (degradado plateado recortado al texto) y la segunda en negro sobre la franja lima, que ahora cubre las letras completas. Al fondo hay un foco de luz que sigue al mouse.
 > - **Modelos.** Son los tres modelos de fotos libres de la 1.0 (Unsplash), que se turnan sobre el fondo oscuro, y el lookbook usa las fotos libres de calle. El 3 de noviembre se quitaron las fotos de Central Cee que había aquí, a pedido del estudiante.
@@ -90,7 +97,7 @@ Todo se anima con `transform` y `opacity`, y respeta "reducir movimiento" del si
 ## 7. Accesibilidad y escritorio
 
 - Foco visible en todo y trampa de foco en la vista rápida y el carrito: Esc cierra.
-- Atajos: `/` busca y `C` abre el carrito.
+- Atajos: `/` busca, `C` abre el carrito y `M` abre el probador en vivo.
 - Las tarjetas de producto son botones con su nombre ("Vista rápida de…").
 - Colores y tallas son radios reales dentro de un `fieldset`, así se pueden usar con teclado y lector de pantalla.
 - Las imágenes decorativas (modelos y escenas) no se anuncian.
@@ -106,3 +113,4 @@ Todo se anima con `transform` y `opacity`, y respeta "reducir movimiento" del si
 | Producto | Foto grande fija a la izquierda con el camaleón, el panel de compra y "Combínalo con" |
 | Vista rápida | La misma compra sin salir de la página |
 | Carrito, pago, pedido, cuenta, login | Mismos tokens; fotos reales en cada línea |
+| Probador en vivo | Panel flotante con la cámara en espejo, la prenda puesta y la tira de buzos y chaquetas |

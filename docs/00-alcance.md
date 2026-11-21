@@ -1,6 +1,8 @@
 # FlowStore · Documento de alcance (Fase 0)
 
 > Borrador para aprobación · 12 de octubre de 2026
+>
+> **Cambio de alcance del 20 de noviembre de 2026.** Para la entrega del lunes 23 de noviembre, el avatar 3D desde la foto (P0 4) y el probador 3D (P0 5) se reemplazan por un **probador en vivo con cámara**. La cámara funciona como espejo y la prenda real del catálogo aparece puesta y sigue el cuerpo. La IA de visión corre en el equipo. El avatar 3D y las prendas en Blender pasan a trabajo futuro. Detalle en `docs/01-decisiones.md`, sección 8.
 > Sustentación: lunes 19 de octubre de 2026 (por confirmar)
 
 ## 1. La idea

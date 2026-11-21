@@ -37,11 +37,13 @@ desktop/
 │   ├── api/             cliente HTTP y endpoints del catálogo
 │   ├── app/             armazón: rutas (#/catalog, #/product/<id>), encabezado, pie, atajos
 │   ├── assets/fonts/    fuentes libres (OFL) con sus licencias
+│   ├── assets/models/   modelo de pose de MediaPipe (Apache 2.0) para el probador
 │   ├── cart/            estado del carrito y panel lateral
 │   ├── components/      componentes reutilizables, cada uno con su .module.css
 │   │   └── garment/     dibujo de las 17 prendas por capas
 │   ├── hooks/           carga de datos, foco, scroll
 │   ├── i18n/es.ts       todos los textos visibles, en español
+│   ├── mirror/          probador en vivo: cámara, IA de pose, medida de la prenda y dibujo
 │   ├── lib/             contraste, dinero en COP, rareza, tallas, tipo de prenda
 │   ├── pages/           inicio, catálogo, detalle de producto
 │   ├── styles/          tokens.css, fuentes y estilos base
@@ -65,6 +67,21 @@ desktop/
 | `#/checkout` | Finalizar compra: resumen del pedido y pago simulado con tarjeta de prueba |
 | `#/orders/<id>` | Detalle del pedido (y "Compra confirmada" justo después de pagar) |
 | Panel lateral | Carrito (tecla `C`) |
+| Panel de la esquina | Probador en vivo (tecla `M` o «Pruébatelo en vivo» en buzos y chaquetas) |
+
+## Probador en vivo
+
+La cámara funciona como espejo: eliges un buzo o una chaqueta y te aparece puesto. La IA es MediaPipe Pose y corre en el equipo, sin internet ni clave. La imagen no se guarda ni se envía. El porqué de cada decisión está en `docs/01-decisiones.md`, sección 8.
+
+- **La primera vez**, macOS pide permiso para la cámara. Si se negó, se activa en Ajustes del Sistema → Privacidad y seguridad → Cámara.
+- **Para que salga bien:** buena luz de frente y que se te vean los hombros, a un metro o metro y medio de la pantalla.
+- **Sin cámara:** «Usar una foto» pone la prenda sobre una foto tuya, de frente y de la cintura para arriba.
+- **Para probarlo sin cámara física** se le puede pasar a Chromium un video falso:
+
+  ```bash
+  npm run build
+  env -u ELECTRON_RUN_AS_NODE npx electron . --use-fake-device-for-media-stream --use-file-for-fake-video-capture=/ruta/video.mjpeg
+  ```
 
 ### Cuentas de prueba (perfil `dev`)
 
