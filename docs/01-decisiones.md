@@ -253,6 +253,34 @@ El objetivo fue que la prenda dejara de verse como una foto pegada encima. Lo qu
 - Si la persona se pone de lado, la prenda se angosta pero no da la vuelta.
 - La tela se estira y se dobla, pero no hace arrugas nuevas ni cae por gravedad. Las arrugas que se ven son las de la foto del producto.
 - Si la ropa de debajo es más ancha que la manga de la prenda, se puede asomar un borde.
+- El fondo desenfocado depende de la máscara de MediaPipe: con pelo suelto o con un fondo del mismo color de la ropa, el borde de la persona puede verse un poco blando.
+- El espejo usa la foto del catálogo tal cual. La de la Supreme × TNF Mountain es de espalda y la de la RL Puffer viene recortada (sin puños), así que en el espejo se ven así. Lo mejor es cambiarlas por fotos de frente y completas.
+
+### Fondo desenfocado, prenda que «se pone» y mejor forma (21 de noviembre de 2026)
+
+El objetivo fue que probarse algo se sienta bien: que la persona resalte, que el cambio de prenda se vea como ponérsela y que las chaquetas tengan forma de chaqueta.
+
+**Fondo desenfocado (modo retrato).** Como el modo retrato de un celular: la persona queda nítida y lo de atrás se desenfoca, así la prenda resalta. Viene prendido. Se apaga con el botón del visor (arriba a la derecha) o con la tecla `F`, y la app recuerda la elección en el equipo. Usa la misma máscara de MediaPipe, sin otro modelo:
+1. Se achica el cuadro de la cámara a 320 px y se le borra la persona.
+2. El hueco se rellena con el fondo de alrededor. La imagen se achica a la mitad una y otra vez hasta 2 px, y luego cada versión pequeña se pega debajo de la anterior más grande. Así cada hueco toma el color del fondo más cercano (técnica *push-pull*).
+3. Se desenfoca en pequeño (160 px de ancho, donde casi no cuesta). Se le baja un poco el brillo y la saturación, y se oscurecen las esquinas (viñeta).
+4. Se agranda al tamaño de la cámara y encima se pega la persona nítida.
+
+Se borra a la persona antes de desenfocar porque, si no, su color se riega sobre el fondo y le queda un aura alrededor. Cuando la persona aparece o se va, el desenfoque entra y sale en 0,45 s, sin saltos. Cuesta unos 2 ms por cuadro: el dibujo pasa de 4 a 6 ms y la cámara sigue a 30 cuadros por segundo.
+
+**La prenda se «pone».** Al elegir una prenda, o al volver a pararse frente a la cámara, la nueva baja desde los hombros hasta el ruedo, como cuando uno se jala un buzo, y va tapando la anterior.
+- El borde que baja es curvo como un ruedo y suave. Deja una sombra leve sobre la prenda de debajo y, por un instante, un brillo como el de la tela al moverse.
+- La prenda arranca un poco más arriba y más corta, y se estira hasta su lugar con un rebote pequeño (curva tipo resorte). Todo dura 0,78 s.
+- Mientras el borde no ha pasado el cuello, se respeta el cuello de la prenda anterior, para que no se recorte durante el cambio.
+- Si el sistema pide reducir el movimiento, las prendas solo se cruzan en 0,2 s.
+- Las prendas se precargan en segundo plano, una por una en los ratos libres (20–45 ms cada una). Por eso el cambio es inmediato, también con las flechas ← →.
+- El nombre y el precio cambian con una transición corta.
+
+**Mejor forma de las chaquetas.**
+- **Abrigos largos sin «alas».** Antes se suponía que la manga llegaba hasta el borde inferior de la foto. En el abrigo largo (Arc'teryx), la parte baja del abrigo seguía a los antebrazos y se abría como alas. Ahora la manga termina donde la silueta se angosta y se mantiene angosta: al menos 10 % menos que lo más ancho, durante al menos 15 % del alto. Lo de abajo es cuerpo.
+- **Mangas por encima del torso.** La malla dibuja primero el torso y después las mangas. Antes, con las manos en los bolsillos, una manga quedaba detrás del cuerpo y la otra delante.
+- **Pliegue entre manga y torso.** Cuando en la foto la manga toca el cuerpo (CDG, Nike Tech blanca), la prenda se veía como un solo bloque. Ahora, al calcular el relieve, la costura interna de la manga cuenta como un borde. Cada manga queda redonda como un tubo y aparece un pliegue suave donde se junta con el cuerpo.
+- **Sin rayas en las prendas claras.** Las prendas blancas mostraban rayas horizontales en las mangas. Venían del relieve: la silueta en píxeles tiene bordes en escalera y el relieve se guardaba con solo 256 niveles (8 bits). Ahora se suaviza con un desenfoque gaussiano de 1,6 px y se guarda con 65.536 niveles (16 bits, en dos canales). Además, la orientación de la tela se calcula en cada vértice de la malla, no en cada triángulo, para que cambie de forma continua.
 
 ## 9. Estilista con IA (Gemini, 20 de noviembre de 2026)
 
