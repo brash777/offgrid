@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { fetchProducts, type ProductSummary } from '../api/catalog';
 import { assetUrl } from '../api/http';
 import { hrefFor } from '../app/router';
@@ -11,10 +11,12 @@ import { loadGarment } from './garment';
 import { useMirror } from './MirrorContext';
 import { loadPoseTracker, setRunningMode, type PoseTracker, type RunningMode } from './poseTracker';
 import { MirrorRenderer, type BodyStatus } from './renderer';
+import { StylistPanel } from './StylistPanel';
 import { canTryOn, TRY_ON_CATEGORIES } from './tryOn';
 import styles from './MirrorPanel.module.css';
 
 type Source = 'camera' | 'photo';
+type Tab = 'garments' | 'stylist';
 type Phase = 'intro' | 'starting' | 'live' | 'error';
 type ErrorKind = keyof typeof es.mirror.errors;
 
@@ -24,6 +26,8 @@ const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 const MAX_PHOTO_SIDE = 1600;
 const PHOTO_ANIMATION_MS = 450;
 const MAX_FRAME_ERRORS = 30;
+const CAPTURE_SIDE = 640;
+const CAPTURE_QUALITY = 0.85;
 
 class MirrorError extends Error {
   readonly kind: ErrorKind;
@@ -84,6 +88,18 @@ async function readPhoto(file: File): Promise<ImageBitmap> {
   return resized;
 }
 
+function base64Of(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      resolve(dataUrl.slice(dataUrl.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function useTryOnProducts(): ProductSummary[] | null {
   const [products, setProducts] = useState<ProductSummary[] | null>(null);
 
@@ -115,6 +131,8 @@ export default function MirrorPanel() {
   const [body, setBody] = useState<BodyStatus>('searching');
   const [expanded, setExpanded] = useState(false);
   const [garmentVersion, setGarmentVersion] = useState(0);
+  const [tab, setTab] = useState<Tab>('garments');
+  const tabsId = useId();
   const panelRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -231,6 +249,19 @@ export default function MirrorPanel() {
   );
 
   const choosePhoto = useCallback(() => fileRef.current?.click(), []);
+
+  const capture = useCallback(async (): Promise<string | null> => {
+    const image = source === 'camera' ? videoRef.current : photoRef.current;
+    const width = image instanceof HTMLVideoElement ? image.videoWidth : (image?.width ?? 0);
+    const height = image instanceof HTMLVideoElement ? image.videoHeight : (image?.height ?? 0);
+    if (!image || width === 0 || height === 0) {
+      return null;
+    }
+    const scale = Math.min(1, CAPTURE_SIDE / Math.max(width, height));
+    const canvas = new OffscreenCanvas(Math.round(width * scale), Math.round(height * scale));
+    canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return base64Of(await canvas.convertToBlob({ type: 'image/jpeg', quality: CAPTURE_QUALITY }));
+  }, [source]);
 
   useLayoutEffect(() => {
     const context = canvasRef.current?.getContext('2d');
@@ -364,6 +395,7 @@ export default function MirrorPanel() {
       ref={panelRef}
       className={styles.panel}
       data-expanded={expanded || undefined}
+      data-tab={tab}
       aria-label={es.mirror.region}
       tabIndex={-1}
       onKeyDown={closeOnEscape}
@@ -460,45 +492,89 @@ export default function MirrorPanel() {
       </div>
 
       <div className={styles.dock}>
-        {selected && (
-          <div className={styles.current}>
-            <div className={styles.currentText}>
-              <p className={styles.currentName}>{selected.name}</p>
-              <p className={styles.currentPrice}>{formatCop(selected.basePrice)}</p>
-            </div>
-            <a className={styles.view} href={hrefFor({ name: 'product', id: selected.id })}>
-              {es.mirror.viewProduct}
-              <Icon name="arrow-up-right" />
-            </a>
-          </div>
-        )}
+        <div className={styles.tabs} role="tablist" aria-label={es.mirror.tabs} data-active={tab}>
+          <span className={styles.tabPill} aria-hidden="true" />
+          {(['garments', 'stylist'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="tab"
+              id={`${tabsId}-${option}`}
+              aria-controls={`${tabsId}-${option}-panel`}
+              aria-selected={tab === option}
+              className={styles.tab}
+              onClick={() => setTab(option)}
+            >
+              <span className={styles.tabLabel}>
+                {option === 'stylist' && <Icon name="bolt" />}
+                {option === 'garments' ? es.mirror.garmentsTab : es.mirror.stylistTab}
+              </span>
+            </button>
+          ))}
+        </div>
 
-        {products && products.length === 0 ? (
-          <p className={styles.empty}>{es.mirror.noGarments}</p>
+        {tab === 'stylist' ? (
+          <div
+            id={`${tabsId}-stylist-panel`}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-stylist`}
+            className={styles.tabPanel}
+          >
+            <StylistPanel
+              canCapture={live}
+              capture={capture}
+              wearingId={selected?.id ?? null}
+              onTryOn={(productId) => mirror.select(productId)}
+            />
+          </div>
         ) : (
-          <div className={styles.strip} role="group" aria-label={es.mirror.garments} onKeyDown={moveSelection}>
-            {(products ?? []).map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                data-id={product.id}
-                className={styles.thumb}
-                aria-pressed={product.id === selected?.id}
-                aria-label={product.name}
-                title={product.name}
-                onClick={() => mirror.select(product.id)}
-              >
-                <img src={assetUrl(product.thumbnailUrl) ?? undefined} alt="" draggable={false} />
-              </button>
-            ))}
-          </div>
-        )}
+          <div
+            id={`${tabsId}-garments-panel`}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-garments`}
+            className={styles.tabPanel}
+          >
+            {selected && (
+              <div className={styles.current}>
+                <div className={styles.currentText}>
+                  <p className={styles.currentName}>{selected.name}</p>
+                  <p className={styles.currentPrice}>{formatCop(selected.basePrice)}</p>
+                </div>
+                <a className={styles.view} href={hrefFor({ name: 'product', id: selected.id })}>
+                  {es.mirror.viewProduct}
+                  <Icon name="arrow-up-right" />
+                </a>
+              </div>
+            )}
 
-        {live && (
-          <button type="button" className={styles.switch} onClick={() => void otherSource()}>
-            <Icon name={source === 'camera' ? 'image' : 'camera'} />
-            {source === 'camera' ? es.mirror.usePhoto : es.mirror.useCamera}
-          </button>
+            {products && products.length === 0 ? (
+              <p className={styles.empty}>{es.mirror.noGarments}</p>
+            ) : (
+              <div className={styles.strip} role="group" aria-label={es.mirror.garments} onKeyDown={moveSelection}>
+                {(products ?? []).map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    data-id={product.id}
+                    className={styles.thumb}
+                    aria-pressed={product.id === selected?.id}
+                    aria-label={product.name}
+                    title={product.name}
+                    onClick={() => mirror.select(product.id)}
+                  >
+                    <img src={assetUrl(product.thumbnailUrl) ?? undefined} alt="" draggable={false} />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {live && (
+              <button type="button" className={styles.switch} onClick={() => void otherSource()}>
+                <Icon name={source === 'camera' ? 'image' : 'camera'} />
+                {source === 'camera' ? es.mirror.usePhoto : es.mirror.useCamera}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
