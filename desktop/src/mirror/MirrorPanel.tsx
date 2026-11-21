@@ -6,6 +6,7 @@ import { hrefFor } from '../app/router';
 import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
 import { es } from '../i18n/es';
+import { isTyping } from '../lib/keyboard';
 import { formatCop } from '../lib/money';
 import { loadGarment } from './garment';
 import { useMirror } from './MirrorContext';
@@ -21,6 +22,7 @@ type Phase = 'intro' | 'starting' | 'live' | 'error';
 type ErrorKind = keyof typeof es.mirror.errors;
 
 const CONSENT_KEY = 'flowstore.mirror-consent';
+const PORTRAIT_KEY = 'flowstore.mirror-portrait';
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 const MAX_PHOTO_SIDE = 1600;
@@ -63,6 +65,22 @@ function readConsent(): boolean {
 function rememberConsent() {
   try {
     window.sessionStorage.setItem(CONSENT_KEY, 'true');
+  } catch {
+    return;
+  }
+}
+
+function readPortrait(): boolean {
+  try {
+    return window.localStorage.getItem(PORTRAIT_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function rememberPortrait(portrait: boolean) {
+  try {
+    window.localStorage.setItem(PORTRAIT_KEY, String(portrait));
   } catch {
     return;
   }
@@ -125,6 +143,7 @@ export default function MirrorPanel() {
   const reduceMotion = useReducedMotion() ?? false;
   const products = useTryOnProducts();
   const [source, setSource] = useState<Source>('camera');
+  const [portrait, setPortrait] = useState(readPortrait);
   const [phase, setPhase] = useState<Phase>('intro');
   const [errorKind, setErrorKind] = useState<ErrorKind>('failed');
   const [loadingLabel, setLoadingLabel] = useState<string>(es.mirror.starting);
@@ -277,6 +296,27 @@ export default function MirrorPanel() {
   }, [reduceMotion]);
 
   useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.portrait = portrait;
+    }
+    rememberPortrait(portrait);
+  }, [portrait]);
+
+  const togglePortrait = useCallback(() => setPortrait((current) => !current), []);
+
+  useEffect(() => {
+    const handleKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'f' || event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      togglePortrait();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [togglePortrait]);
+
+  useEffect(() => {
     panelRef.current?.focus({ preventScroll: true });
     if (readConsent()) {
       void startCamera();
@@ -367,7 +407,7 @@ export default function MirrorPanel() {
     };
     step();
     return () => cancelAnimationFrame(handle);
-  }, [phase, source, garmentVersion, report]);
+  }, [phase, source, garmentVersion, portrait, report]);
 
   const moveSelection = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!products || !selected || (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft')) {
@@ -424,6 +464,17 @@ export default function MirrorPanel() {
             <span className={styles.badge}>{es.mirror.region}</span>
           )}
           <div className={styles.tools}>
+            <button
+              type="button"
+              className={styles.tool}
+              onClick={togglePortrait}
+              aria-pressed={portrait}
+              aria-label={es.mirror.portrait}
+              aria-keyshortcuts="F"
+              title={`${es.mirror.portrait} (F)`}
+            >
+              <Icon name="focus" />
+            </button>
             <button
               type="button"
               className={styles.tool}

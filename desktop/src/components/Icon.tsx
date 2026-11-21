@@ -23,7 +23,8 @@ export type IconName =
   | 'camera'
   | 'image'
   | 'expand'
-  | 'collapse';
+  | 'collapse'
+  | 'focus';
 
 const PATHS: Record<IconName, ReactElement> = {
   'arrow-left': <path d="M19 12H5M11 6l-6 6 6 6" />,
@@ -47,6 +48,7 @@ const PATHS: Record<IconName, ReactElement> = {
   image: <path d="M4 5h16v14H4zM4 16.5l4.5-4.5 4 4 2.5-2.5 5 5M15.5 9.5h.01" />,
   expand: <path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" />,
   collapse: <path d="M19 10h-5V5M5 14h5v5M14 10l6-6M10 14l-6 6" />,
+  focus: <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM7.5 17.5a4.5 4.5 0 0 1 9 0" />,
   palette: <path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-.9.7-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3zM7.5 12.5h.01M9.5 8h.01M14.5 8h.01" />,
 };
 

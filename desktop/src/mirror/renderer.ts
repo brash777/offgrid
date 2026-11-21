@@ -1,4 +1,5 @@
 import type { Landmark, MPMask, NormalizedLandmark, PoseLandmarkerResult } from '@mediapipe/tasks-vision';
+import { Backdrop } from './backdrop';
 import { BodyFit, type BodyPose, type Segment } from './bodyFit';
 import type { Garment, Point, Sleeve } from './garment';
 import { MeshRenderer, type Shade } from './meshRenderer';
@@ -70,6 +71,7 @@ const COLLAR_REACH = 1.4;
 const COLLAR_FLATTEN = 0.6;
 
 const FADE_MS = 200;
+const BACKDROP_MS = 450;
 const ENTER_MS = 340;
 const ENTER_SCALE = 0.92;
 
@@ -129,6 +131,11 @@ function halfEllipse(centerAlong: number, centerUp: number, radiusAlong: number,
 
 function easeOut(progress: number): number {
   return 1 - Math.pow(1 - Math.min(Math.max(progress, 0), 1), 3);
+}
+
+function easeInOut(progress: number): number {
+  const value = Math.min(Math.max(progress, 0), 1);
+  return value * value * (3 - 2 * value);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -197,6 +204,7 @@ export class MirrorRenderer {
   private readonly person = makeCanvas();
   private readonly region = makeCanvas();
   private readonly shadow = makeCanvas();
+  private readonly backdrop = new Backdrop();
   private readonly scene = new SceneLight();
   private readonly bodyFit = new BodyFit();
   private readonly mesh: MeshRenderer | null;
@@ -223,7 +231,10 @@ export class MirrorRenderer {
   private bodyVisible = false;
   private neckLift = 0;
   private collarHeight: number | null = null;
+  private backdropAmount = 0;
+  private backdropTime: number | null = null;
   reducedMotion = false;
+  portrait = true;
 
   constructor(context: CanvasRenderingContext2D) {
     this.context = context;
@@ -251,6 +262,8 @@ export class MirrorRenderer {
     this.bodyVisible = false;
     this.neckLift = 0;
     this.collarHeight = null;
+    this.backdropAmount = 0;
+    this.backdropTime = null;
     this.bodyFit.reset();
     this.scene.reset();
   }
@@ -262,10 +275,12 @@ export class MirrorRenderer {
       context.canvas.width = width;
       context.canvas.height = height;
     }
-    this.drawSource(context, frame);
-
     const landmarks = result?.landmarks[0];
     const world = result?.worldLandmarks[0];
+    const mask = result?.segmentationMasks?.[0];
+    const cut = mask && cutout && landmarks ? cutout(mask, frame.source) : null;
+    this.drawBackground(frame, cut, now);
+
     this.scene.update(frame, landmarks);
     const found = this.track(frame, landmarks, world, now);
     if (found !== this.bodyVisible) {
@@ -282,11 +297,10 @@ export class MirrorRenderer {
       : 1 - this.fade(now - this.bodyLostSince);
     if (this.placement && bodyOpacity > 0) {
       const { placement } = this;
-      const mask = result?.segmentationMasks?.[0];
-      const cut = mask && cutout && landmarks && this.bodyVisible ? cutout(mask, frame.source) : null;
+      const person = this.bodyVisible ? cut : null;
       const arms = landmarks ? this.armSegments(frame, landmarks) : [];
       const lighting = this.scene.lighting(!this.reducedMotion);
-      this.bodyFit.capture(cut, width, height, frame.mirrored);
+      this.bodyFit.capture(person, width, height, frame.mirrored);
       this.mesh?.begin(width, height, this.scene.canvas, lighting, this.shade(placement));
       if (this.previous) {
         const fadeOut = 1 - this.fade(now - this.previous.since);
@@ -302,14 +316,44 @@ export class MirrorRenderer {
         this.drawGarment(this.current.garment, placement, progress * bodyOpacity, scale, arms, lighting);
       }
       if (this.mesh && (this.current || this.previous)) {
-        this.drawShadow(frame, cut, placement, lighting);
+        this.drawShadow(frame, person, placement, lighting);
         context.drawImage(this.mesh.canvas, 0, 0);
       }
-      if (cut && landmarks && (this.current || this.previous)) {
-        this.drawPersonOnTop(frame, cut, landmarks, placement, now);
+      if (person && landmarks && (this.current || this.previous)) {
+        this.drawPersonOnTop(frame, person, landmarks, placement, now);
       }
     }
     return this.bodyVisible ? 'found' : 'searching';
+  }
+
+  private drawBackground(frame: Frame, cut: CanvasImageSource | null, now: number) {
+    const { context } = this;
+    const target = this.portrait && cut ? 1 : 0;
+    const elapsed = this.backdropTime === null ? 0 : Math.max(now - this.backdropTime, 0);
+    this.backdropTime = now;
+    if (this.reducedMotion) {
+      this.backdropAmount = target;
+    } else if (target > this.backdropAmount) {
+      this.backdropAmount = Math.min(target, this.backdropAmount + elapsed / BACKDROP_MS);
+    } else {
+      this.backdropAmount = Math.max(target, this.backdropAmount - elapsed / BACKDROP_MS);
+    }
+    if (target > 0 && cut) {
+      this.backdrop.build(frame, cut);
+    }
+    const amount = easeInOut(this.backdropAmount);
+    if (amount < 1 || !this.backdrop.ready) {
+      this.drawSource(context, frame);
+    }
+    if (amount > 0 && this.backdrop.ready) {
+      this.backdrop.draw(context, frame.width, frame.height, amount);
+      if (cut) {
+        context.save();
+        context.globalAlpha = amount;
+        this.drawSource(context, frame, cut);
+        context.restore();
+      }
+    }
   }
 
   private fade(elapsed: number): number {

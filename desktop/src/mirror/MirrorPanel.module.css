@@ -143,6 +143,11 @@
   transform: scale(calc(1 + 0.08 * var(--motion-amount)));
 }
 
+.tool[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
 .tool:focus-visible,
 .thumb:focus-visible,
 .link:focus-visible,
