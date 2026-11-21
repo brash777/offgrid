@@ -209,7 +209,37 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 3. **La prenda se dobla como tela, sin cortes.** La foto se convierte en una malla de unos 2.300 triángulos. Cada punto de la malla tiene un "peso" para cinco huesos: torso, brazo y antebrazo de cada lado. Un punto del pecho sigue solo al torso, uno del puño sigue al antebrazo, y los de la axila, el hombro y el codo mezclan dos huesos. Por eso la tela se estira y se dobla de forma continua cuando la persona mueve los brazos, en vez de partirse. Es la técnica que usan los videojuegos para doblar la piel de un personaje (*skinning*). La malla se dibuja con WebGL en la GPU. Si la foto no deja ver dónde empieza la manga, se estima, y si el resultado no tiene sentido (por ejemplo, una manga que no cuelga hacia abajo) la prenda sigue solo al torso.
 4. **La cabeza y las manos van encima.** Con la máscara de la persona que da el modelo, la cabeza, el cuello y las manos que suben al pecho se dibujan sobre la prenda, con el borde difuminado para que no se note el corte. Por eso la capucha queda detrás de la cabeza y no tapa la cara.
 5. **Sin temblores.** Cada medida pasa por un filtro *One Euro*, un suavizado que casi no deja temblar la prenda cuando la persona está quieta y casi no se atrasa cuando se mueve rápido.
-6. **La luz se ajusta.** La app mide qué tan iluminada está la escena y oscurece o aclara un poco la prenda para que no parezca pegada encima.
+6. **La luz se ajusta.** La app mide la luz, el color y el contraste de la escena y los aplica a la prenda. Ver «Más realismo», abajo.
+
+### Más realismo (21 de noviembre de 2026)
+
+El objetivo fue que la prenda dejara de verse como una foto pegada encima. Lo que la delataba: la misma luz en todas partes, negros puros que ninguna cámara web produce, ninguna sombra sobre el cuerpo, bordes demasiado nítidos y la camiseta de debajo asomándose por los hombros.
+
+**Luz y color de la escena.** Cada 6 cuadros la app reduce la imagen de la cámara a 64 px de ancho y mide el brillo general, el negro más oscuro, el blanco más claro y el tono (luz cálida o fría). La prenda se lleva a ese mismo contraste y tono. Así el negro de un buzo queda como el negro que da la cámara y la prenda toma un poco el color de la luz del cuarto.
+
+**De qué lado viene la luz.** Se compara el brillo de la mitad izquierda y la mitad derecha de la cara, ubicada con la nariz y las orejas que da MediaPipe. El lado más iluminado indica de dónde viene la luz.
+
+**Volumen.** Al cargar la prenda se calcula, para cada punto de la foto, qué tan lejos está del borde (*transformada de distancia*). Eso se vuelve un relieve: las mangas y los costados quedan redondeados como un tubo y el centro casi plano. Con ese relieve, el *shader* (el programa de la tarjeta de video que pinta la prenda) calcula hacia dónde mira cada punto de la tela. El lado que da a la luz se aclara y el otro se oscurece. Los bordes y las axilas se oscurecen un poco más, como pasa con la tela real (*oclusión ambiental*).
+
+**Sombras.**
+- La prenda proyecta una sombra suave sobre el cuerpo: debajo del borde inferior y alrededor de las mangas. La sombra se corre en dirección contraria a la luz y se recorta con la silueta de la persona para que no caiga sobre el fondo.
+- La barbilla deja sombra sobre el cuello de la prenda, y dentro del cuello también hay sombra.
+
+**Textura de cámara.** La foto del producto es más nítida y limpia que una cámara web, y eso la delata. Por eso la prenda se suaviza un poco, lleva el mismo grano de una cámara (quieto en modo foto o si el sistema pide reducir el movimiento) y tiene los bordes difuminados 1–2 px y mezclados con el color de lo que hay detrás (*light wrap*).
+
+**Forma del cuerpo.**
+- **Ancho:** la máscara de la persona se lee en pequeño (192 px). Fila por fila del torso se mide el ancho real del cuerpo, descontando los brazos. La prenda se ciñe si la persona es más delgada (hasta 14 %) o se ensancha si es más gruesa (hasta 15 %), y siempre queda un poco más holgada que el cuerpo. Los cambios se suavizan en el tiempo para que la tela no "respire".
+- **Hombros:** desde cuatro puntos de los hombros se mide hacia arriba hasta dónde llega la silueta. Si el hombro real queda por encima de la prenda, la prenda sube para cubrirlo; antes se asomaba la camiseta.
+
+**Cuello y capucha.**
+- La app sabe si la prenda tiene capucha midiendo el área de la silueta por encima de los hombros. Las capuchas ocupan 0,44 o más y los cuellos altos 0,31 o menos, en unidades del ancho de hombros al cuadrado. Las 12 prendas del catálogo quedan bien clasificadas.
+- **Con capucha:** la capucha se comprime hacia los hombros para que se vea caída en la espalda, y se deja ver el cuello hasta el escote.
+- **Con cuello alto** (chaquetas, suéter con cremallera): el cuello de la prenda envuelve el de la persona, como en la vida real.
+- La cabeza se dibuja encima con forma de mandíbula. La barbilla se estima con la boca y los ojos, y la forma sigue a la cabeza si la persona se inclina.
+
+**Hombros de la prenda mejor medidos.** En la foto del producto, el hombro ahora se ubica donde el contorno deja de bajar en diagonal (más de 45°) y empieza la manga. Antes algunas prendas, como la CDG y la Nike Tech blanca, quedaban hasta 20 % más grandes.
+
+**Costo.** Todo esto suma unos 4 ms por cuadro (6 ms en el peor caso) a 1280×720. Lo más pesado sigue siendo la detección de pose (unos 17 ms), así que la cámara sigue a sus 30 cuadros por segundo.
 
 **Privacidad (Ley 1581).**
 - La imagen de la cámara se procesa en el equipo, cuadro por cuadro, y **no se guarda ni se envía a ningún servidor**. El panel lo dice antes de encender la cámara.
@@ -219,9 +249,10 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - La política de seguridad de la página (CSP) agrega `'wasm-unsafe-eval'`, que es lo mínimo para ejecutar WebAssembly. No se habilita `'unsafe-eval'`, que permitiría ejecutar texto como código JavaScript.
 
 **Límites honestos (para decirlos si preguntan).**
-- La prenda es una foto que se deforma en 2D, no tela simulada en 3D. Se ve mejor de frente y con buena luz.
+- La prenda es una foto que se deforma en 2D, no tela simulada en 3D. El volumen y las sombras se calculan a partir de la silueta, no de un modelo 3D. Se ve mejor de frente y con buena luz.
 - Si la persona se pone de lado, la prenda se angosta pero no da la vuelta.
-- La tela se estira y se dobla, pero no hace arrugas ni cae por gravedad.
+- La tela se estira y se dobla, pero no hace arrugas nuevas ni cae por gravedad. Las arrugas que se ven son las de la foto del producto.
+- Si la ropa de debajo es más ancha que la manga de la prenda, se puede asomar un borde.
 
 ## 9. Estilista con IA (Gemini, 20 de noviembre de 2026)
 
@@ -256,7 +287,7 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 
 ## 10. Pendiente para seguir
 
-Para que el backend llegue a correr contra una base de datos real falta que me compartas (en el chat o directo en tu `.env`, nunca en un commit):
+Para que el backend corra contra Supabase hay que poner estos valores directo en `backend/.env` (nunca en el chat ni en un commit):
 
 ```
 DB_URL=jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require

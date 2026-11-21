@@ -1,6 +1,8 @@
 import type { Point, Sleeve } from './garment';
 
 export const BONES = 5;
+export const GRID_COLUMNS = 28;
+export const GRID_ROWS = 40;
 
 export interface Skin {
   rest: Float32Array;
@@ -9,8 +11,20 @@ export interface Skin {
   indices: Uint16Array;
 }
 
-const COLUMNS = 28;
-const ROWS = 40;
+export interface Crown {
+  line: number;
+  squash: number;
+}
+
+export interface Fit {
+  center: number;
+  rows: Float32Array;
+  lift: Float32Array;
+  liftXs: Float32Array;
+  liftFrom: number;
+  liftTo: number;
+}
+
 const SEAM_FEATHER = 0.06;
 const ELBOW_AT = 0.47;
 const ELBOW_FEATHER = 0.1;
@@ -59,21 +73,27 @@ function sleeveWeights(point: Point, sleeve: Sleeve, feather: number): [number, 
   return [belongs * (1 - lower), belongs * lower];
 }
 
-export function buildSkin(width: number, height: number, span: number, sleeves: [Sleeve, Sleeve] | null): Skin {
-  const count = (COLUMNS + 1) * (ROWS + 1);
+export function buildSkin(
+  width: number,
+  height: number,
+  span: number,
+  sleeves: [Sleeve, Sleeve] | null,
+  crown: Crown,
+): Skin {
+  const count = (GRID_COLUMNS + 1) * (GRID_ROWS + 1);
   const rest = new Float32Array(count * 2);
   const uv = new Float32Array(count * 2);
   const weights = new Float32Array(count * BONES);
   const feather = span * SEAM_FEATHER;
 
-  for (let row = 0; row <= ROWS; row += 1) {
-    for (let column = 0; column <= COLUMNS; column += 1) {
-      const vertex = row * (COLUMNS + 1) + column;
-      const point = { x: (column / COLUMNS) * width, y: (row / ROWS) * height };
+  for (let row = 0; row <= GRID_ROWS; row += 1) {
+    for (let column = 0; column <= GRID_COLUMNS; column += 1) {
+      const vertex = row * (GRID_COLUMNS + 1) + column;
+      const point = { x: (column / GRID_COLUMNS) * width, y: (row / GRID_ROWS) * height };
       rest[vertex * 2] = point.x;
-      rest[vertex * 2 + 1] = point.y;
-      uv[vertex * 2] = column / COLUMNS;
-      uv[vertex * 2 + 1] = row / ROWS;
+      rest[vertex * 2 + 1] = point.y < crown.line ? crown.line - (crown.line - point.y) * crown.squash : point.y;
+      uv[vertex * 2] = column / GRID_COLUMNS;
+      uv[vertex * 2 + 1] = row / GRID_ROWS;
       const [leftUpper, leftLower] = sleeves ? sleeveWeights(point, sleeves[0], feather) : [0, 0];
       const [rightUpper, rightLower] = sleeves ? sleeveWeights(point, sleeves[1], feather) : [0, 0];
       const sleeveTotal = Math.min(leftUpper + leftLower + rightUpper + rightLower, 1);
@@ -86,12 +106,12 @@ export function buildSkin(width: number, height: number, span: number, sleeves: 
     }
   }
 
-  const indices = new Uint16Array(COLUMNS * ROWS * 6);
+  const indices = new Uint16Array(GRID_COLUMNS * GRID_ROWS * 6);
   let cursor = 0;
-  for (let row = 0; row < ROWS; row += 1) {
-    for (let column = 0; column < COLUMNS; column += 1) {
-      const topLeft = row * (COLUMNS + 1) + column;
-      const bottomLeft = topLeft + COLUMNS + 1;
+  for (let row = 0; row < GRID_ROWS; row += 1) {
+    for (let column = 0; column < GRID_COLUMNS; column += 1) {
+      const topLeft = row * (GRID_COLUMNS + 1) + column;
+      const bottomLeft = topLeft + GRID_COLUMNS + 1;
       indices.set([topLeft, bottomLeft, topLeft + 1, topLeft + 1, bottomLeft, bottomLeft + 1], cursor);
       cursor += 6;
     }
@@ -99,19 +119,39 @@ export function buildSkin(width: number, height: number, span: number, sleeves: 
   return { rest, uv, weights, indices };
 }
 
-export function deform(skin: Skin, bones: DOMMatrix[], target: Float32Array) {
+export function liftAt(fit: Fit, x: number): number {
+  const { lift, liftXs } = fit;
+  if (x <= liftXs[0]) {
+    return lift[0];
+  }
+  for (let index = 1; index < liftXs.length; index += 1) {
+    if (x <= liftXs[index]) {
+      const progress = (x - liftXs[index - 1]) / Math.max(liftXs[index] - liftXs[index - 1], 0.0001);
+      return lift[index - 1] + (lift[index] - lift[index - 1]) * progress;
+    }
+  }
+  return lift[lift.length - 1];
+}
+
+function lifted(fit: Fit, x: number, y: number): number {
+  return y - liftAt(fit, x) * (1 - smoothstep(fit.liftFrom, fit.liftTo, y));
+}
+
+export function deform(skin: Skin, bones: DOMMatrix[], target: Float32Array, fit: Fit | null) {
   const { rest, weights } = skin;
   for (let vertex = 0; vertex < rest.length / 2; vertex += 1) {
     const x = rest[vertex * 2];
-    const y = rest[vertex * 2 + 1];
+    const y = fit ? lifted(fit, x, rest[vertex * 2 + 1]) : rest[vertex * 2 + 1];
+    const torsoX = fit ? fit.center + (x - fit.center) * fit.rows[Math.floor(vertex / (GRID_COLUMNS + 1))] : x;
     let outX = 0;
     let outY = 0;
     for (let bone = 0; bone < BONES; bone += 1) {
       const weight = weights[vertex * BONES + bone];
       if (weight > 0) {
         const matrix = bones[bone];
-        outX += weight * (matrix.a * x + matrix.c * y + matrix.e);
-        outY += weight * (matrix.b * x + matrix.d * y + matrix.f);
+        const boneX = bone === 0 ? torsoX : x;
+        outX += weight * (matrix.a * boneX + matrix.c * y + matrix.e);
+        outY += weight * (matrix.b * boneX + matrix.d * y + matrix.f);
       }
     }
     target[vertex * 2] = outX;
