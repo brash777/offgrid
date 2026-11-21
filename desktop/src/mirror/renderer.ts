@@ -2,7 +2,7 @@ import type { Landmark, MPMask, NormalizedLandmark, PoseLandmarkerResult } from 
 import { Backdrop } from './backdrop';
 import { BodyFit, type BodyPose, type Segment } from './bodyFit';
 import type { Garment, Point, Sleeve } from './garment';
-import { MeshRenderer, type Shade } from './meshRenderer';
+import { MeshRenderer, type Shade, type Wipe } from './meshRenderer';
 import { OneEuroFilter } from './oneEuroFilter';
 import { SceneLight, type Lighting } from './scene';
 import { liftAt } from './skin';
@@ -72,8 +72,21 @@ const COLLAR_FLATTEN = 0.6;
 
 const FADE_MS = 200;
 const BACKDROP_MS = 450;
-const ENTER_MS = 340;
-const ENTER_SCALE = 0.92;
+const PUT_ON_MS = 780;
+const REPLAY_AFTER_MS = 800;
+const REVEAL_SHARE = 0.74;
+const REVEAL_FROM = -0.6;
+const REVEAL_TO = 1.5;
+const REVEAL_SOFTNESS = 0.08;
+const REVEAL_CURVE = 0.12;
+const REVEAL_SPREAD = 0.9;
+const NECK_HANDOFF = -0.05;
+const SHEEN = 0.08;
+const HEM_SHADOW = 0.35;
+const SETTLE_STRETCH = 0.14;
+const SETTLE_RISE = 0.07;
+const SETTLE_SPRING = 1.4;
+const TORSO_GUESS = 1.4;
 
 interface Arm {
   upper: number;
@@ -110,6 +123,18 @@ interface Layer {
   since: number;
 }
 
+interface Settle {
+  stretch: number;
+  rise: number;
+}
+
+interface Neck {
+  lift: number;
+  collar: number | null;
+}
+
+const REST: Settle = { stretch: 1, rise: 0 };
+
 interface Projected {
   along: number;
   up: number;
@@ -129,8 +154,9 @@ function halfEllipse(centerAlong: number, centerUp: number, radiusAlong: number,
   });
 }
 
-function easeOut(progress: number): number {
-  return 1 - Math.pow(1 - Math.min(Math.max(progress, 0), 1), 3);
+function easeOutBack(progress: number): number {
+  const rest = Math.min(Math.max(progress, 0), 1) - 1;
+  return 1 + (SETTLE_SPRING + 1) * rest * rest * rest + SETTLE_SPRING * rest * rest;
 }
 
 function easeInOut(progress: number): number {
@@ -223,6 +249,7 @@ export class MirrorRenderer {
     jaw: new OneEuroFilter(1.2, 0.02),
   };
   private readonly armFilters: [ArmFilters, ArmFilters] = [makeArmFilters(), makeArmFilters()];
+  private readonly necks = new Map<Garment, Neck>();
   private placement: Placement | null = null;
   private current: Layer | null = null;
   private previous: Layer | null = null;
@@ -264,6 +291,8 @@ export class MirrorRenderer {
     this.collarHeight = null;
     this.backdropAmount = 0;
     this.backdropTime = null;
+    this.bodyLostSince = 0;
+    this.necks.clear();
     this.bodyFit.reset();
     this.scene.reset();
   }
@@ -286,6 +315,10 @@ export class MirrorRenderer {
     if (found !== this.bodyVisible) {
       this.bodyVisible = found;
       if (found) {
+        if (this.current && now - this.bodyLostSince > REPLAY_AFTER_MS) {
+          this.current.since = now;
+          this.previous = null;
+        }
         this.bodyVisibleSince = now;
       } else {
         this.bodyLostSince = now;
@@ -302,19 +335,28 @@ export class MirrorRenderer {
       const lighting = this.scene.lighting(!this.reducedMotion);
       this.bodyFit.capture(person, width, height, frame.mirrored);
       this.mesh?.begin(width, height, this.scene.canvas, lighting, this.shade(placement));
+      const since = (this.current ?? this.previous)?.since ?? now;
+      const change = this.progress(now - since);
+      const animated = !this.reducedMotion && this.mesh !== null;
+      let edge = Infinity;
       if (this.previous) {
-        const fadeOut = 1 - this.fade(now - this.previous.since);
-        if (fadeOut <= 0) {
+        if (change >= 1) {
           this.previous = null;
         } else {
-          this.drawGarment(this.previous.garment, placement, fadeOut * bodyOpacity, 1, arms, lighting);
+          const wipe = animated && this.current ? this.wipe(placement, change, -1) : null;
+          edge = wipe?.edge ?? edge;
+          this.drawGarment(this.previous.garment, placement, bodyOpacity * (wipe ? 1 : 1 - change), REST, arms, lighting, wipe);
         }
       }
       if (this.current) {
-        const progress = this.reducedMotion ? 1 : easeOut((now - this.current.since) / ENTER_MS);
-        const scale = ENTER_SCALE + (1 - ENTER_SCALE) * progress;
-        this.drawGarment(this.current.garment, placement, progress * bodyOpacity, scale, arms, lighting);
+        const wipe = animated ? this.wipe(placement, change, 1) : null;
+        const settle = animated ? this.settle(change) : REST;
+        this.drawGarment(this.current.garment, placement, bodyOpacity * (wipe ? 1 : change), settle, arms, lighting, wipe);
       }
+      const owner = this.previous && edge < NECK_HANDOFF ? this.previous : this.current;
+      const neck = owner ? this.necks.get(owner.garment) : undefined;
+      this.neckLift = neck?.lift ?? 0;
+      this.collarHeight = neck ? neck.collar : null;
       if (this.mesh && (this.current || this.previous)) {
         this.drawShadow(frame, person, placement, lighting);
         context.drawImage(this.mesh.canvas, 0, 0);
@@ -324,6 +366,32 @@ export class MirrorRenderer {
       }
     }
     return this.bodyVisible ? 'found' : 'searching';
+  }
+
+  private progress(elapsed: number): number {
+    return clamp(elapsed / (this.reducedMotion ? FADE_MS : PUT_ON_MS), 0, 1);
+  }
+
+  private settle(change: number): Settle {
+    const spring = easeOutBack(change);
+    return { stretch: 1 - SETTLE_STRETCH * (1 - spring), rise: SETTLE_RISE * (1 - spring) };
+  }
+
+  private wipe(placement: Placement, change: number, side: 1 | -1): Wipe {
+    const length = placement.torso ?? placement.frontalWidth * TORSO_GUESS;
+    const spread = placement.width * REVEAL_SPREAD;
+    const reveal = easeInOut(change / REVEAL_SHARE);
+    return {
+      origin: [placement.x, placement.y],
+      down: [-Math.sin(placement.angle) / length, Math.cos(placement.angle) / length],
+      across: [Math.cos(placement.angle) / spread, Math.sin(placement.angle) / spread],
+      edge: REVEAL_FROM + (REVEAL_TO - REVEAL_FROM) * reveal,
+      softness: REVEAL_SOFTNESS,
+      curve: REVEAL_CURVE,
+      side,
+      sheen: side > 0 ? SHEEN * (1 - reveal) : 0,
+      shadow: side < 0 ? HEM_SHADOW : 0,
+    };
   }
 
   private drawBackground(frame: Frame, cut: CanvasImageSource | null, now: number) {
@@ -468,7 +536,7 @@ export class MirrorRenderer {
     return true;
   }
 
-  private garmentMatrix(garment: Garment, placement: Placement, pop: number): DOMMatrix {
+  private garmentMatrix(garment: Garment, placement: Placement, settle: Settle): DOMMatrix {
     const { leftShoulder, rightShoulder, hemY } = garment;
     const span = Math.hypot(rightShoulder.x - leftShoulder.x, rightShoulder.y - leftShoulder.y);
     const tilt = Math.atan2(rightShoulder.y - leftShoulder.y, rightShoulder.x - leftShoulder.x);
@@ -479,10 +547,12 @@ export class MirrorRenderer {
       const stretch = (placement.torso * HEM_REACH) / (hemY - middle.y);
       scaleY = clamp(stretch, scaleY * MIN_TORSO_STRETCH, scaleY * MAX_TORSO_STRETCH);
     }
+    const rise = settle.rise * (placement.torso ?? placement.frontalWidth * TORSO_GUESS);
     return new DOMMatrix()
       .translate(placement.x, placement.y)
       .rotate(degrees(placement.angle - tilt))
-      .scale(scaleX * pop, scaleY * pop)
+      .translate(0, -rise)
+      .scale(scaleX, scaleY * settle.stretch)
       .translate(-middle.x, -middle.y);
   }
 
@@ -595,11 +665,13 @@ export class MirrorRenderer {
     garment: Garment,
     placement: Placement,
     opacity: number,
-    pop: number,
+    settle: Settle,
     arms: Segment[],
     lighting: Lighting,
+    wipe: Wipe | null,
   ) {
-    const base = this.garmentMatrix(garment, placement, pop);
+    const rest = this.garmentMatrix(garment, placement, REST);
+    const base = settle === REST ? rest : this.garmentMatrix(garment, placement, settle);
     if (this.mesh) {
       const bones = [base];
       [0, 1].forEach((side) => {
@@ -614,13 +686,11 @@ export class MirrorRenderer {
         shoulders: placement.shoulders,
         size: placement.frontalWidth,
       };
-      const fit = this.bodyFit.fit(garment, base, pose);
-      if (garment === this.current?.garment) {
-        const scaleY = Math.hypot(base.c, base.d);
-        this.neckLift = fit ? liftAt(fit, garment.torso.center) * scaleY : 0;
-        this.collarHeight = garment.neckline.hooded ? null : garment.neckline.collar * scaleY + this.neckLift;
-      }
-      this.mesh.draw(garment, bones, fit, opacity);
+      const fit = this.bodyFit.fit(garment, rest, pose);
+      const scaleY = Math.hypot(rest.c, rest.d);
+      const lift = fit ? liftAt(fit, garment.torso.center) * scaleY : 0;
+      this.necks.set(garment, { lift, collar: garment.neckline.hooded ? null : garment.neckline.collar * scaleY + lift });
+      this.mesh.draw(garment, bones, fit, opacity, wipe);
       return;
     }
     const { context } = this;

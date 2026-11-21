@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react';
 import { fetchProducts, type ProductSummary } from '../api/catalog';
 import { assetUrl } from '../api/http';
@@ -23,10 +23,11 @@ type ErrorKind = keyof typeof es.mirror.errors;
 
 const CONSENT_KEY = 'flowstore.mirror-consent';
 const PORTRAIT_KEY = 'flowstore.mirror-portrait';
+const PRELOAD_TIMEOUT_MS = 1500;
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 const MAX_PHOTO_SIDE = 1600;
-const PHOTO_ANIMATION_MS = 450;
+const PHOTO_ANIMATION_MS = 1200;
 const MAX_FRAME_ERRORS = 30;
 const CAPTURE_SIDE = 640;
 const CAPTURE_QUALITY = 0.85;
@@ -118,6 +119,32 @@ function base64Of(blob: Blob): Promise<string> {
   });
 }
 
+function usePreloadedGarments(products: ProductSummary[] | null) {
+  useEffect(() => {
+    const queue = (products ?? []).map((product) => assetUrl(product.thumbnailUrl)).filter((url): url is string => Boolean(url));
+    let active = true;
+    let handle = 0;
+    const next = () => {
+      const url = queue.shift();
+      if (!active || !url) {
+        return;
+      }
+      void loadGarment(url)
+        .catch(() => undefined)
+        .finally(() => {
+          if (active) {
+            handle = window.requestIdleCallback(next, { timeout: PRELOAD_TIMEOUT_MS });
+          }
+        });
+    };
+    handle = window.requestIdleCallback(next, { timeout: PRELOAD_TIMEOUT_MS });
+    return () => {
+      active = false;
+      window.cancelIdleCallback(handle);
+    };
+  }, [products]);
+}
+
 function useTryOnProducts(): ProductSummary[] | null {
   const [products, setProducts] = useState<ProductSummary[] | null>(null);
 
@@ -142,6 +169,7 @@ export default function MirrorPanel() {
   const mirror = useMirror();
   const reduceMotion = useReducedMotion() ?? false;
   const products = useTryOnProducts();
+  usePreloadedGarments(products);
   const [source, setSource] = useState<Source>('camera');
   const [portrait, setPortrait] = useState(readPortrait);
   const [phase, setPhase] = useState<Phase>('intro');
@@ -587,10 +615,19 @@ export default function MirrorPanel() {
           >
             {selected && (
               <div className={styles.current}>
-                <div className={styles.currentText}>
-                  <p className={styles.currentName}>{selected.name}</p>
-                  <p className={styles.currentPrice}>{formatCop(selected.basePrice)}</p>
-                </div>
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.div
+                    key={selected.id}
+                    className={styles.currentText}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <p className={styles.currentName}>{selected.name}</p>
+                    <p className={styles.currentPrice}>{formatCop(selected.basePrice)}</p>
+                  </motion.div>
+                </AnimatePresence>
                 <a className={styles.view} href={hrefFor({ name: 'product', id: selected.id })}>
                   {es.mirror.viewProduct}
                   <Icon name="arrow-up-right" />

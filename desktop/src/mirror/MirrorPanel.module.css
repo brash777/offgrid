@@ -31,6 +31,10 @@
   --stage-height: 250px;
 }
 
+.panel[data-tab='garments'] .dock {
+  flex-shrink: 0;
+}
+
 .panel[data-tab='stylist'][data-expanded] {
   --stage-height: 420px;
 }
@@ -356,6 +360,7 @@
 }
 
 .current {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;

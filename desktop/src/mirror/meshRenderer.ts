@@ -7,6 +7,18 @@ export interface Shade {
   neckStrength: number;
 }
 
+export interface Wipe {
+  origin: [number, number];
+  down: [number, number];
+  across: [number, number];
+  edge: number;
+  softness: number;
+  curve: number;
+  side: 1 | -1;
+  sheen: number;
+  shadow: number;
+}
+
 const SHADING = 0.6;
 const OCCLUSION = 0.8;
 const LIGHT_WRAP = 0.22;
@@ -49,6 +61,10 @@ uniform vec4 neck;
 uniform float neckStrength;
 uniform float grain;
 uniform float seed;
+uniform vec2 wipeOrigin;
+uniform vec4 wipeAxes;
+uniform vec4 wipe;
+uniform vec3 wipeShape;
 out vec4 color;
 
 float heightAt(vec2 point) {
@@ -95,7 +111,17 @@ void main() {
   shaded = mix(shaded, around, lightWrap * (1.0 - smoothstep(0.0, 0.3, surface.r)));
   shaded += (noise(pixel + seed * 17.0) - 0.5) * grain;
 
-  float alpha = texel.a * surface.g * opacity;
+  vec2 offset = pixel - wipeOrigin;
+  float sideways = dot(offset, wipeAxes.zw);
+  float along = dot(offset, wipeAxes.xy) + wipeShape.x * sideways * sideways;
+  float passed = smoothstep(wipe.x - wipe.y, wipe.x + wipe.y, along);
+  float shown = wipe.z > 0.5 ? 1.0 - passed : (wipe.z < -0.5 ? passed : 1.0);
+  float band = (along - wipe.x + wipe.y) / max(wipe.y, 0.0001);
+  shaded += wipe.w * exp(-band * band) * (0.4 + 0.6 * facing);
+  float under = (along - wipe.x - wipe.y) / max(wipe.y * 1.5, 0.0001);
+  shaded *= 1.0 - wipeShape.y * exp(-under * under);
+
+  float alpha = texel.a * surface.g * opacity * shown;
   color = vec4(clamp(shaded, 0.0, 1.0) * alpha, alpha);
 }`;
 
@@ -116,6 +142,10 @@ const UNIFORMS = [
   'neckStrength',
   'grain',
   'seed',
+  'wipeOrigin',
+  'wipeAxes',
+  'wipe',
+  'wipeShape',
   'garment',
   'relief',
   'scene',
@@ -225,7 +255,7 @@ export class MeshRenderer {
     gl.uniform1f(uniforms.neckStrength, shade.neckStrength);
   }
 
-  draw(garment: Garment, bones: DOMMatrix[], fit: Fit | null, opacity: number) {
+  draw(garment: Garment, bones: DOMMatrix[], fit: Fit | null, opacity: number, wipe: Wipe | null) {
     const { gl, uniforms } = this;
     const mesh = this.meshFor(garment);
     deform(garment.skin, bones, mesh.positionData, fit);
@@ -236,6 +266,10 @@ export class MeshRenderer {
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, mesh.frameData);
     const scale = Math.hypot(bones[0].a, bones[0].b);
     gl.uniform1f(uniforms.opacity, opacity);
+    gl.uniform2fv(uniforms.wipeOrigin, wipe?.origin ?? [0, 0]);
+    gl.uniform4fv(uniforms.wipeAxes, wipe ? [...wipe.down, ...wipe.across] : [0, 0, 0, 0]);
+    gl.uniform4f(uniforms.wipe, wipe?.edge ?? 0, wipe?.softness ?? 1, wipe?.side ?? 0, wipe?.sheen ?? 0);
+    gl.uniform3f(uniforms.wipeShape, wipe?.curve ?? 0, wipe?.shadow ?? 0, 0);
     gl.uniform1f(uniforms.reliefPixels, garment.relief.radius * scale);
     gl.uniform2f(uniforms.reliefTexel, 1 / garment.relief.width, 1 / garment.relief.height);
     gl.activeTexture(gl.TEXTURE0);
