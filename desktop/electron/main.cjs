@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('node:path');
+const { registerCameraPermission } = require('./camera-permission.cjs');
 const { registerSessionStore } = require('./session-store.cjs');
 
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
@@ -50,6 +51,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   registerSessionStore(isAppUrl);
+  registerCameraPermission(isAppUrl);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

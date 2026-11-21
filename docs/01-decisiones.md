@@ -6,6 +6,8 @@
 
 ## 1. Enfoque del avatar 3D
 
+> **Reemplazado el 20 de noviembre de 2026** por el probador en vivo con cámara (sección 8). Con la entrega el lunes 23 no alcanzaba el tiempo para modelar prendas 3D en Blender. El estudiante eligió la idea del espejo, que además cumple lo que buscaba desde el principio: verse uno mismo con la ropa puesta.
+
 ### Las opciones que se compararon
 
 | Enfoque | Cómo funciona | Costo | Calidad esperada | Riesgo para este caso |
@@ -192,7 +194,36 @@ El código no lleva comentarios. Lo que antes explicaban los comentarios queda a
 - **Los mensajes de validación los da el backend.** Salen de `messages.properties`, así hay una sola fuente de textos de error. La app los muestra debajo de cada campo y mueve el foco al primero con error.
 - **Movimiento solo con `transform` y `opacity`.** Ninguna animación cambia tamaños ni posiciones del layout, y todas se apagan con "reducir movimiento" del sistema. El carrusel del inicio se pausa con el mouse y tiene botón de pausa.
 
-## 8. Pendiente para seguir
+## 8. Probador en vivo con cámara (20 de noviembre de 2026)
+
+**Qué hace.** En la esquina derecha de la app se abre un panel con la cámara en modo espejo. La persona elige un buzo o una chaqueta y le aparece puesto. Si se mueve, se acerca, se inclina o levanta los brazos, la prenda la sigue. Se abre con el botón de cámara del encabezado, con la tecla `M` o con «Pruébatelo en vivo» en la ficha de cada buzo y chaqueta.
+
+**La IA que lo hace posible.** Es **MediaPipe Pose Landmarker** de Google, un modelo de visión por computador que encuentra 33 puntos del cuerpo (hombros, codos, muñecas, cadera…) y además separa a la persona del fondo. Lo elegimos porque:
+- **Es gratis y no necesita clave ni internet.** Corre dentro de la app con WebAssembly y la GPU del equipo. El modelo (`pose_landmarker_full.task`, 9 MB, licencia Apache 2.0) va dentro del repo para que la demo funcione sin conexión.
+- **Es rápido.** En el Mac tarda unos 14 ms por cuadro y el dibujo otros 6 ms, así que la cámara va a sus 30 cuadros por segundo.
+- **No hay que modelar nada en 3D.** Usa las mismas fotos recortadas del catálogo.
+
+**Cómo se pone la prenda, paso a paso:**
+1. **Se mide la prenda.** Al cargar la foto del producto, la app recorre su silueta fila por fila y encuentra dónde termina la caída del hombro y empieza la manga. Ese punto se alinea con los hombros de la persona. Así funciona con cualquier prenda nueva que suba el administrador, sin configurar nada.
+2. **Se ubica sobre el cuerpo.** El ancho sale de la distancia entre los hombros, el largo de la distancia hombros–cadera, y el ángulo de la inclinación de los hombros. Si la persona gira, el modelo da la profundidad de cada hombro y la prenda se angosta sin encogerse de alto.
+3. **Las mangas siguen los brazos.** Cada prenda se separa en torso y dos mangas. Cada manga se parte en el codo: un tramo sigue el brazo y otro el antebrazo. Si la foto no deja ver bien dónde empieza la manga, se estima, y si el resultado no tiene sentido (por ejemplo, una manga que no cuelga hacia abajo) se deja la prenda entera sin mover las mangas.
+4. **La cabeza y las manos van encima.** Con la máscara de la persona que da el modelo, la cabeza, el cuello y las manos que suben al pecho se dibujan sobre la prenda. Por eso la capucha queda detrás de la cabeza y no tapa la cara.
+5. **Sin temblores.** Cada medida pasa por un filtro *One Euro*, un suavizado que casi no deja temblar la prenda cuando la persona está quieta y casi no se atrasa cuando se mueve rápido.
+6. **La luz se ajusta.** La app mide qué tan iluminada está la escena y oscurece o aclara un poco la prenda para que no parezca pegada encima.
+
+**Privacidad (Ley 1581).**
+- La imagen de la cámara se procesa en el equipo, cuadro por cuadro, y **no se guarda ni se envía a ningún servidor**. El panel lo dice antes de encender la cámara.
+- La cámara se apaga apenas se cierra el panel.
+- El **modo foto** (respaldo para cuando no hay cámara o la luz es mala) abre la imagen solo en memoria. Valida el tipo (JPG, PNG o WebP) y el tamaño (máximo 15 MB), y la borra al cerrar el panel.
+- Electron solo da permiso de **cámara**, sin micrófono, y solo a la propia app. Cualquier otro permiso que pida la página se niega. En macOS el sistema pide permiso la primera vez con el texto «OFFGRID usa la cámara para el probador en vivo…».
+- La política de seguridad de la página (CSP) agrega `'wasm-unsafe-eval'`, que es lo mínimo para ejecutar WebAssembly. No se habilita `'unsafe-eval'`, que permitiría ejecutar texto como código JavaScript.
+
+**Límites honestos (para decirlos si preguntan).**
+- La prenda es una foto que se deforma en 2D, no tela simulada en 3D. Se ve mejor de frente y con buena luz.
+- Si la persona se pone de lado, la prenda se angosta pero no da la vuelta.
+- El codo de la manga es una bisagra, no una tela que se arruga.
+
+## 9. Pendiente para seguir
 
 Para que el backend llegue a correr contra una base de datos real falta que me compartas (en el chat o directo en tu `.env`, nunca en un commit):
 

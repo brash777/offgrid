@@ -8,8 +8,11 @@ import { flyToCart } from '../../cart/flyToCart';
 import { es } from '../../i18n/es';
 import { colorsOf, compareSizes, LOW_STOCK_THRESHOLD } from '../../lib/catalog';
 import { formatCop } from '../../lib/money';
+import { useMirror } from '../../mirror/MirrorContext';
+import { canTryOn } from '../../mirror/tryOn';
 import { Button } from '../Button';
 import { Icon } from '../Icon';
+import { useQuickView } from './QuickView';
 import styles from './PurchasePanel.module.css';
 
 interface PurchasePanelProps {
@@ -24,6 +27,8 @@ interface PurchasePanelProps {
 export function PurchasePanel({ product, colorName, onColorChange, photoRef, titleId, headingLevel = 'h2' }: PurchasePanelProps) {
   const cart = useCart();
   const notify = useNotify();
+  const mirror = useMirror();
+  const quickView = useQuickView();
   const [busy, setBusy] = useState<'add' | 'buy' | null>(null);
   const [chosenSize, setChosenSize] = useState<string | null>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
@@ -163,6 +168,20 @@ export function PurchasePanel({ product, colorName, onColorChange, photoRef, tit
           {es.store.buyNow}
         </Button>
       </div>
+      {canTryOn(product) && (
+        <Button
+          variant="secondary"
+          size="lg"
+          block
+          onClick={() => {
+            quickView.close();
+            mirror.open(product.id);
+          }}
+          icon={<Icon name="camera" />}
+        >
+          {es.mirror.tryOn}
+        </Button>
+      )}
       <p className={styles.note}>{es.product.paymentNote}</p>
     </div>
   );

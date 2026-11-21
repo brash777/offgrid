@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: http://localhost:8080",
   "font-src 'self'",

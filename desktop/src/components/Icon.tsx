@@ -19,7 +19,11 @@ export type IconName =
   | 'truck'
   | 'shield'
   | 'pulse'
-  | 'palette';
+  | 'palette'
+  | 'camera'
+  | 'image'
+  | 'expand'
+  | 'collapse';
 
 const PATHS: Record<IconName, ReactElement> = {
   'arrow-left': <path d="M19 12H5M11 6l-6 6 6 6" />,
@@ -39,6 +43,10 @@ const PATHS: Record<IconName, ReactElement> = {
   truck: <path d="M3 6.5h11v9H3zM14 9.5h4l3 3v3h-7M7 18.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17.5 18.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />,
   shield: <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6zM9 12l2.2 2.2L15.5 10" />,
   pulse: <path d="M3 12h4l2.5-6 5 12 2.5-6h4" />,
+  camera: <path d="M4 8h3.2l1.6-2.2h6.4L16.8 8H20v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />,
+  image: <path d="M4 5h16v14H4zM4 16.5l4.5-4.5 4 4 2.5-2.5 5 5M15.5 9.5h.01" />,
+  expand: <path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" />,
+  collapse: <path d="M19 10h-5V5M5 14h5v5M14 10l6-6M10 14l-6 6" />,
   palette: <path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-.9.7-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3zM7.5 12.5h.01M9.5 8h.01M14.5 8h.01" />,
 };
 
