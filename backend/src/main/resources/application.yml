@@ -46,6 +46,12 @@ flow:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   storage:
     base-path: ${STORAGE_BASE_PATH:./uploads}
+  ai:
+    enabled: ${AI_ENABLED:false}
+    api-key: ${AI_API_KEY:}
+    base-url: ${AI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai}
+    model: ${AI_MODEL:gemini-3.5-flash-lite}
+    daily-limit: ${AI_DAILY_LIMIT:25}
 
 springdoc:
   swagger-ui:

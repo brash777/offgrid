@@ -12,9 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -59,12 +61,43 @@ public class ProductService {
             filters = filters.and(ProductSpecifications.nameContains(text.trim()));
         }
         Page<Product> page = productRepository.findAll(filters, pageable);
-        List<UUID> productIds = page.getContent().stream().map(Product::getId).toList();
+        Map<UUID, CatalogDtos.ProductSummaryResponse> summaries = summarize(page.getContent());
+        return PageResponse.from(page.map(product -> summaries.get(product.getId())));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CatalogDtos.ProductSummaryResponse> findInStock(String categorySlug, String text, int limit) {
+        Specification<Product> filters = ProductSpecifications.active();
+        if (!isBlank(categorySlug)) {
+            filters = filters.and(ProductSpecifications.inCategory(categorySlug.trim()));
+        }
+        if (!isBlank(text)) {
+            filters = filters.and(ProductSpecifications.nameContains(text.trim()));
+        }
+        List<Product> products = productRepository.findAll(filters, Pageable.ofSize(limit)).getContent();
+        return summarize(products).values().stream()
+                .filter(summary -> summary.totalStock() > 0)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CatalogDtos.ProductSummaryResponse> summariesOf(List<UUID> productIds) {
+        if (productIds.isEmpty()) {
+            return List.of();
+        }
+        List<Product> products = productRepository.findAll(
+                ProductSpecifications.active().and(ProductSpecifications.idIn(productIds)), Pageable.unpaged()).getContent();
+        Map<UUID, CatalogDtos.ProductSummaryResponse> summaries = summarize(products);
+        return productIds.stream().map(summaries::get).filter(Objects::nonNull).toList();
+    }
+
+    private Map<UUID, CatalogDtos.ProductSummaryResponse> summarize(List<Product> products) {
+        List<UUID> productIds = products.stream().map(Product::getId).toList();
         Map<UUID, ProductPhotos.Photo> photos = productPhotos.firstPhotos(productIds);
         Map<UUID, Long> stockByProduct = stockService.availabilityByProduct(productIds);
         Map<UUID, List<CatalogDtos.ColorResponse>> colorsByProduct = colorsOf(productIds);
-
-        return PageResponse.from(page.map(product -> new CatalogDtos.ProductSummaryResponse(
+        Map<UUID, CatalogDtos.ProductSummaryResponse> summaries = new LinkedHashMap<>();
+        products.forEach(product -> summaries.put(product.getId(), new CatalogDtos.ProductSummaryResponse(
                 product.getId(),
                 product.getName(),
                 product.getBasePrice(),
@@ -75,6 +108,7 @@ public class ProductService {
                 photos.getOrDefault(product.getId(), ProductPhotos.Photo.NONE).color(),
                 stockByProduct.getOrDefault(product.getId(), 0L),
                 colorsByProduct.getOrDefault(product.getId(), List.of()))));
+        return summaries;
     }
 
     @Transactional(readOnly = true)
