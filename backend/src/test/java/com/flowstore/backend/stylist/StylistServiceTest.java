@@ -106,6 +106,21 @@ class StylistServiceTest {
     }
 
     @Test
+    void aSuggestionAboveTheBudgetIsNotTrusted() throws Exception {
+        when(chatModel.complete(any(), any(), any())).thenReturn(json("""
+                {"role":"assistant","tool_calls":[{"id":"1","type":"function",
+                 "function":{"name":"recommend_outfit",
+                 "arguments":"{\\"product_ids\\":[\\"%s\\"],\\"message\\":\\"Te queda brutal\\"}"}}]}"""
+                .formatted(hoodie.id())));
+        when(productService.summariesOf(List.of(hoodie.id()))).thenReturn(List.of(hoodie));
+
+        StylistDtos.OutfitResponse response = service(true).recommend(userId,
+                new StylistDtos.OutfitRequest("algo con máximo 500 mil", null, false));
+
+        assertThat(response.source()).isEqualTo(StylistSource.RULES);
+    }
+
+    @Test
     void theDailyLimitAnswers429WithoutCallingTheAi() {
         when(requestRepository.countByUserIdAndCreatedAtGreaterThanEqual(eq(userId), any())).thenReturn((long) DAILY_LIMIT);
 

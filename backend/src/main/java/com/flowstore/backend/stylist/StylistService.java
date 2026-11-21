@@ -42,6 +42,8 @@ public class StylistService {
     private static final String SEARCH_TOOL = "search_catalog";
     private static final String RECOMMEND_TOOL = "recommend_outfit";
     private static final String PHOTO_ONLY_PROMPT = "Build an outfit that suits the style in my photo.";
+    private static final String BUDGET_NOTE =
+            "%n(Budget: %s COP in total. Call search_catalog with max_price %s and keep the sum within it.)";
     private static final String SYSTEM_PROMPT = """
             You are the in-store stylist of OFFGRID, a streetwear shop in Colombia. Prices are in Colombian pesos (COP).
             First call search_catalog once without filters: the catalog is small and that shows every product.
@@ -123,12 +125,15 @@ public class StylistService {
     private Outfit askModel(String prompt, String photo) {
         ArrayNode conversation = objectMapper.createArrayNode();
         conversation.addObject().put("role", "system").put("content", SYSTEM_PROMPT);
+        String request = StylistRules.budget(prompt)
+                .map(budget -> prompt + BUDGET_NOTE.formatted(budget.toBigInteger(), budget.toBigInteger()))
+                .orElse(prompt);
         ObjectNode user = conversation.addObject().put("role", "user");
         if (photo == null) {
-            user.put("content", prompt);
+            user.put("content", request);
         } else {
             ArrayNode content = user.putArray("content");
-            content.addObject().put("type", "text").put("text", prompt);
+            content.addObject().put("type", "text").put("text", request);
             content.addObject().put("type", "image_url").putObject("image_url").put("url", photo);
         }
         ArrayNode tools = tools();
@@ -222,7 +227,9 @@ public class StylistService {
 
     private static List<ProductSummaryResponse> withinBudget(List<ProductSummaryResponse> items, String prompt) {
         BigDecimal budget = StylistRules.budget(prompt).orElse(null);
-        List<ProductSummaryResponse> kept = new ArrayList<>(items);
+        List<ProductSummaryResponse> kept = new ArrayList<>(items.stream()
+                .filter(product -> budget == null || product.basePrice().compareTo(budget) <= 0)
+                .toList());
         while (budget != null && kept.size() > 1 && total(kept).compareTo(budget) > 0) {
             kept.remove(kept.size() - 1);
         }
