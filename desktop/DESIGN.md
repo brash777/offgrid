@@ -1,5 +1,11 @@
 # Sistema de diseño
 
+> **Versión 1.3, 22 de noviembre de 2026 (portada de estudio).** El estudiante mandó fotos de modelos en estudio (fondo azul acero, ropa negra y una chaqueta varsity) y pidió cambiar los modelos recortados, que se veían como un montaje, y un efecto de vidrio que combine con esas fotos:
+> - **Escena completa, sin recortes pegados.** La foto ocupa todo el héroe con su propio fondo de estudio. A los lados se extiende con el color del borde de cada fila de la foto, así no se ve el corte.
+> - **Profundidad.** El titular queda entre dos capas de la misma foto: detrás de las personas y delante del fondo, como en una portada de revista. Con el mouse, la foto y el titular se mueven a distinta velocidad (parallax).
+> - **Vidrio líquido.** La tarjeta de prendas, el lookbook y los botones van en vidrio esmerilado azulado (`--color-liquid-*`), con borde de luz y un brillo que sigue al mouse.
+> - **Colores del estudio.** `--color-studio-top` y `--color-studio-floor` salen de la foto; las escenas se turnan cada 6.5 s con un fundido.
+
 > **Versión 1.2, 20 de noviembre de 2026 (probador en vivo).** Se agrega el panel del espejo con cámara:
 > - **Panel oscuro en la esquina inferior derecha** (`--color-mirror-panel`), con bordes redondeados grandes y la misma sombra de los paneles flotantes. No tapa la página: se puede seguir comprando con el panel abierto.
 > - **Escenario 4:5** con la cámara en espejo. Arriba, la píldora «En vivo» con un punto rojo que late (`--color-live`) o «Tu foto» con punto lima. Abajo, el nombre y precio de la prenda puesta y la tira de miniaturas: la elegida lleva un anillo lima.
@@ -65,6 +71,7 @@ Las mismas fuentes libres (SIL OFL) guardadas en `src/assets/fonts/`:
 - **Origen.** Todas las fotos son de Unsplash, con su licencia: uso libre, incluso comercial, sin pedir permiso. Los nombres de marcas (Nike, Jordan, Vans, Ray-Ban) se usan solo para nombrar los productos de una tienda multimarca de demostración y pertenecen a sus dueños. El footer lo dice.
 - **Recorte.** El fondo de las fotos de producto y de los modelos se quitó en el Mac con el framework Vision de Apple, el mismo que usa "copiar sujeto" en Fotos, con un programa de 70 líneas en Swift. No se subió ninguna foto a servicios externos.
 - **Peso.** Se exportaron a WebP con transparencia: productos a 1400 px (4.5 MB los 26) y modelos y escenas a 1800 px.
+- **Fotos de estudio de la portada (1.3).** Son de terceros y las mandó el estudiante para la demo. Se procesaron en el Mac con Vision (escena extendida y recorte de las personas) y viven en `desktop/src/assets/studio/`, que no se sube a git. Si faltan, la portada muestra solo el fondo de estudio.
 - **Dónde viven.** Las fotos de producto son datos del catálogo: están en el backend (`src/main/resources/catalog/`) y la base de datos guarda su ruta en `product_images`. Las de la portada son parte de la interfaz y van en `desktop/src/assets/home/`.
 
 ## 5. Efecto camaleón
@@ -85,7 +92,7 @@ Todo se anima con `transform` y `opacity`, y respeta "reducir movimiento" del si
 | Momento | Animación |
 |---|---|
 | Entrada | Contador y línea lima; el telón sube en 0.85 s |
-| Héroe | Las líneas del titular suben desde una máscara, se pinta la franja lima, el modelo sube y las tarjetas entran por los lados. Los modelos se turnan cada 5.2 s y todo sigue al mouse con resortes. |
+| Héroe | Las líneas del titular suben desde una máscara, se pinta la franja lima, la escena de estudio aparece con un acercamiento suave y las tarjetas de vidrio entran por los lados. Las escenas se turnan cada 6.5 s; foto, titular y tarjetas siguen al mouse a distinta velocidad (parallax) y el brillo del vidrio también. |
 | Lookbook | Fundido entre fotos con un acercamiento lento (efecto Ken Burns) y botón de pausa |
 | Secciones | Aparecen al hacer scroll (subida y fundido, una sola vez) |
 | Filtros | La píldora activa se desliza entre opciones; las tarjetas se reacomodan con animación de layout |

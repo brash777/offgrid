@@ -324,3 +324,16 @@ DB_PASSWORD=<tu password de Supabase>
 ```
 
 Eso sale de Supabase: Project Settings → Database → Connection string → **Session pooler** (no "Direct connection", que es solo IPv6; no "Transaction pooler" / puerto 6543, que rompe las migraciones de Flyway).
+
+## 11. Portada con fotos de estudio (22 de noviembre de 2026)
+
+**Qué se pidió.** Cambiar los modelos de la portada por las fotos que mandó el estudiante (modelos en estudio con fondo azul acero), que no se vea como un montaje y que todo combine con esas fotos, con un efecto de vidrio.
+
+**Cómo se hizo.**
+1. **Escena completa.** Antes eran personas recortadas encima de un fondo negro, y eso delata el montaje. Ahora se usa la foto entera, con su propio fondo. Como la foto es vertical y la pantalla horizontal, un programa en Swift extiende el estudio hacia los lados: para cada fila toma el color del borde de la foto y lo continúa, con una transición suave y un poco de grano. Así parece una sola foto ancha.
+2. **El titular entre capas.** Con Vision de Apple (lo mismo que «copiar sujeto» en Fotos) se saca un recorte de las personas de esa misma foto. El titular va encima del fondo y debajo del recorte, por eso la cabeza tapa un poco las letras, como en una portada de revista. Como las dos capas son la misma foto, no hay bordes raros.
+3. **Parallax.** Con el mouse, la foto se mueve poco y el titular en sentido contrario, y las tarjetas flotan más. Las distintas velocidades dan sensación de profundidad.
+4. **Vidrio líquido.** Las tarjetas y los botones son de vidrio esmerilado (`backdrop-filter`: desenfoque y más saturación) teñido del azul del estudio, con un borde de luz arriba y un brillo que sigue al mouse. El tinte oscuro asegura que el texto se lea también sobre el piso claro.
+5. **Todo de la misma sesión.** El lookbook, la colección «Gorros y gorras» y el panel de inicio de sesión usan recortes de las mismas fotos. Se quitaron las fotos anteriores.
+
+**Por qué no se suben a git.** Son fotos de terceros (se ve una marca real) y el repositorio es público. Igual que las fotos de producto, viven solo en el equipo (`desktop/src/assets/studio/`, ignorada por git) y la app empaquetada las lleva dentro. Si alguien clona el repositorio, la portada funciona igual, solo con el fondo de estudio.

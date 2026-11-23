@@ -4,11 +4,11 @@ import type { ProductSummary } from '../../api/catalog';
 import { assetUrl } from '../../api/http';
 import { hrefFor, navigate } from '../../app/router';
 import sceneAccessories from '../../assets/home/scene-accessories.webp';
-import sceneCap from '../../assets/home/scene-look-cap.webp';
 import sceneEssentials from '../../assets/home/scene-essentials.webp';
 import sceneOuterwear from '../../assets/home/scene-outerwear.webp';
 import sceneSneakers from '../../assets/home/scene-sneakers.webp';
 import { es } from '../../i18n/es';
+import { studioPhoto } from '../../lib/studioPhotos';
 import { Icon, type IconName } from '../Icon';
 import { ProductCard } from '../ProductCard';
 import { ProductCardSkeleton } from '../Skeleton';
@@ -21,9 +21,9 @@ const SCENES: Record<string, string> = {
   sneakers: sceneSneakers,
   essentials: sceneEssentials,
   accessories: sceneAccessories,
-  cap: sceneCap,
+  cap: studioPhoto('look-duo') ?? sceneEssentials,
 };
-const SCENE_FOCUS: Record<string, string> = { cap: 'center 8%' };
+const SCENE_FOCUS: Record<string, string> = { cap: 'center 35%' };
 const ARRIVALS = 8;
 const SPOTLIGHT_MS = 3200;
 const NEW_BADGES = 3;
