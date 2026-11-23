@@ -3,12 +3,12 @@ import { ApiError } from '../api/http';
 import { navigateTo, hrefFor } from '../app/router';
 import { useNotify } from '../app/notifications';
 import { firstName, useAuth } from '../auth/AuthContext';
-import lookYellow from '../assets/home/scene-look-yellow.webp';
 import { BrandLogo } from '../components/BrandLogo';
 import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
 import { TextField } from '../components/TextField';
 import { es } from '../i18n/es';
+import { studioPhoto } from '../lib/studioPhotos';
 import styles from './AuthPage.module.css';
 
 type AuthMode = 'login' | 'register';
@@ -21,6 +21,7 @@ interface AuthPageProps {
 }
 
 const EMPTY_FORM: Record<FieldName, string> = { fullName: '', email: '', password: '' };
+const panelPhoto = studioPhoto('look-varsity');
 
 export function AuthPage({ mode, next, email }: AuthPageProps) {
   const auth = useAuth();
@@ -78,7 +79,7 @@ export function AuthPage({ mode, next, email }: AuthPageProps) {
   return (
     <div className={styles.layout}>
       <aside className={styles.panel} aria-label={es.auth.perksLabel}>
-        <img className={styles.panelImage} src={lookYellow} alt="" />
+        {panelPhoto && <img className={styles.panelImage} src={panelPhoto} alt="" />}
         <span className={styles.logo}>
           <BrandLogo variant="wordmark" />
         </span>

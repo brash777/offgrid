@@ -96,6 +96,13 @@
   --color-live: var(--palette-red-400);
   --color-mirror-panel: var(--palette-ink-950);
   --color-mirror-stage: var(--palette-ink-900);
+  --color-studio-top: #0f2f42;
+  --color-studio-floor: #d6dcdd;
+  --color-liquid-fill: rgb(14 34 47 / 0.34);
+  --color-liquid-stroke: rgb(255 255 255 / 0.26);
+  --color-liquid-shine: rgb(255 255 255 / 0.55);
+  --color-liquid-sheen: rgb(255 255 255 / 0.16);
+  --color-liquid-depth: rgb(5 16 24 / 0.45);
 
   --rarity-common: var(--palette-rarity-common);
   --rarity-rare: var(--palette-rarity-rare);
