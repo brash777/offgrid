@@ -1,7 +1,30 @@
+# Secretos: nunca se suben
+.env
+.env.*
+!.env.example
+
+# Dependencias y compilación
+node_modules/
+target/
+dist/
+out/
+release/
+*.log
+
+# Sistema operativo y editores
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Archivos de trabajo locales
+.claude/
+skills-lock.json
+tools/blender
+
+# Referencias privadas y fotos de terceros
 docs/referencias/*
 !docs/referencias/README.md
-.claude/settings.local.json
-tools/blender
 desktop/src/assets/studio/*
 !desktop/src/assets/studio/README.md
