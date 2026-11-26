@@ -1,5 +1,7 @@
 
 enlace video https://drive.google.com/file/d/1PpiGYMFtb7uo41n8SxkmLDIjviKhF23z/view?usp=sharing
+
+profe este es el link de mi repositorio del juego profe https://github.com/SantiagooOrtega/7Days
 # OFFGRID
 
 **OFFGRID** es una tienda de streetwear de escritorio para Mac. Compras de punta
